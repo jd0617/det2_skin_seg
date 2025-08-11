@@ -1,0 +1,133 @@
+AUTO_RESUME: true
+CUDNN:
+  BENCHMARK: false
+  DETERMINISTIC: true
+  ENABLED: true
+GPUS: (0,)
+SEED: 24
+
+RECORD_BASE: '/home/jd0617/Saved/only_complete_600x1200/kfold_inner_random_oc' #'/home/jd0617/Saved/cls_by_patient/rgb' '/tmp/testestes' # 
+OUTPUT_DIR: 'hrnet/result'
+
+WORKERS: 4
+PRINT_FREQ: 5
+AMP: true
+PIN_MEMORY: true
+
+K_FOLD: 5
+VAL_K_FOLD: 3
+RESUME_K: 3 # idx start from 0
+RESUME_INNER_K: 0 # idx start from 0
+
+DATASET:
+  DATASET: CompletePatch # CellByPatient
+  IMG_DIR: "/home/jd0617/Datasets_Models/Datasets/skin_patch_img_dataset/cropped_patch_all_r1_r2"
+  ANNO_DIR: "/home/jd0617/Datasets_Models/Datasets/seg_by_patient/anno/all_complete_merge.json"
+  TRAIN_ANNO_DIR: '/home/jd0617/Datasets_Models/Datasets/seg_by_patient/anno/all_complete_train.json'
+  # VAL_ANNO_DIR: ''
+  TEST_ANNO_DIR: '/home/jd0617/Datasets_Models/Datasets/seg_by_patient/anno/all_complete_test.json'
+  # BALANCE: True
+  SHUFFLE: true
+  KFOLD_LIST: '' #'/home/jd0617/Datasets_Models/Datasets/seg_by_patient/anno/k5_v3_patient_list.json' 
+
+MODEL:
+  INIT_WEIGHTS: true
+  MODEL: hrnet
+  PRETRAINED: '' #'/home/jd0617/Saved/ham10k_seg/hrnet_w32_result_DiceLossWithBCE/output/w32_ham10k/model_best.pth'
+  PRETRAINED_STRICT: False
+  IMG_SIZE: [600, 1200]
+  MASK_SHAPE: [150, 300]
+  POL_TO_BOX: False
+  TO_HSV: False
+  GAUSS_BLUR: False
+  BILATERAL_FILTER: False
+  MINMAX: True
+  NUM_MASKS: 15
+  EXTRA:
+    ALIGN_CORNERS: True
+    PRETRAINED_LAYERS:
+      - 'conv1'
+      - 'bn1'
+      - 'conv2'
+      - 'bn2'
+      - 'layer1'
+      - 'transition1'
+      - 'stage2'
+      - 'transition2'
+      - 'stage3'
+      - 'transition3'
+      - 'stage4'  
+    # FINAL_CONV_KERNEL: 1
+    STAGE2:
+      NUM_MODULES: 1
+      NUM_BRANCHES: 2
+      BLOCK: BASIC
+      NUM_BLOCKS:
+      - 4
+      - 4
+      NUM_CHANNELS:
+      - 32
+      - 64
+      FUSE_METHOD: SUM
+    STAGE3:
+      NUM_MODULES: 4
+      NUM_BRANCHES: 3
+      BLOCK: BASIC
+      NUM_BLOCKS:
+      - 4
+      - 4
+      - 4
+      NUM_CHANNELS:
+      - 32
+      - 64
+      - 128
+      FUSE_METHOD: SUM
+    STAGE4:
+      NUM_MODULES: 3
+      NUM_BRANCHES: 4
+      BLOCK: BASIC
+      NUM_BLOCKS:
+      - 4
+      - 4
+      - 4
+      - 4
+      NUM_CHANNELS:
+      - 32
+      - 64
+      - 128
+      - 256
+      FUSE_METHOD: SUM
+
+LOSS:
+  LOSS: DiceLossWithBCE
+  REDUCTION: mean
+  ALPHA: 0.5
+  BETA: 0.5
+  GAMMA: 2.0
+  SMOOTH: 1e-6
+  DICE_RAT: 1.0
+
+TRAIN:
+  BATCH_SIZE_PER_GPU: 16
+  BEGIN_EPOCH: 0
+  END_EPOCH: 120
+  OPTIMIZER: adam
+  LR: 0.002 # 0.002 for normal, 0.0002 for smaller dataset
+  LR_FACTOR: 0.1
+  LR_STEP:
+  - 96 # 64
+  - 110 # 75
+  WD: 0.0001
+  GAMMA1: 0.99
+  GAMMA2: 0.0
+  MOMENTUM: 0.9
+  NESTEROV: false
+
+TEST:
+  BATCH_SIZE_PER_GPU: 16
+  TEST_MODEL_FILE: ''
+
+DEBUG:
+  DEBUG: true
+  SAVE_BATCH_IMAGES_RESULTS: true
+  SAVE_EMBED_VIS: true

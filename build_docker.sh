@@ -1,0 +1,1 @@
+docker build -t det2:my0 .

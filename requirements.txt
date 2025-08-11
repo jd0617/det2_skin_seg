@@ -1,0 +1,12 @@
+timm 
+numpy #==1.24.3
+matplotlib 
+opencv-python-headless
+yacs 
+pyyaml 
+tensorboardX
+EasyDict
+scikit-image
+yacs
+scikit-learn
+torchmetrics
