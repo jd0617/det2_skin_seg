@@ -1,6 +1,8 @@
 import os
 import logging
 
+import numpy as np
+
 from pathlib import Path
 
 from detectron2.data.datasets import register_cooc_instances
@@ -37,9 +39,9 @@ def get_patient_id(anno):
     return str(anno["patient_id"])
 
 def register_dataset(name: str, json_file: str, img_root: str):
-    if name in Dataset.Catalog.list():
+    if name in DatasetCatalog.list():
         logger.info(f"Found existed {name}, removing existed {name}...")
-        Dataset.Catalog.remove(name)
+        DatasetCatalog.remove(name)
 
     logger.info(f"Registering {name}...")
     DatasetCatalog.register(name, lambda: load_coco(json_file, img_root)) # , attach_pid_if_missing=True
@@ -48,12 +50,12 @@ def register_dataset(name: str, json_file: str, img_root: str):
 ### K-Fold related functions
 
 def get_records(name: str):
-    return Dataset.Catalog.get(name)
+    return DatasetCatalog.get(name)
 
 def get_groups_from_records(records):
     return np.array([str(r.get("patient_id")) for r in records])
 
-def group_kfold_indices(groups, n_plsit=5, rng_seed=42):
+def group_kfold_indices(groups, n_splits=5, rng_seed=42):
     rng = np.random.default_rng(rng_seed)
     uniq = np.array(sorted(set(groups)))
     rng.shuffle(uniq)
@@ -69,7 +71,7 @@ def group_kfold_indices(groups, n_plsit=5, rng_seed=42):
 
 def register_split(name, base_records, indices):
     subset = [base_records[i] for i in indices]
-    if name in DataCatalog.list():
+    if name in DatasetCatalog.list():
         DatasetCatalog.remove(name)
 
     DatasetCatalog.register(name, lambda s=subset: deepcopy(s))

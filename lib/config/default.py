@@ -99,6 +99,10 @@ _C.DEBUG.DEBUG =  True
 _C.DEBUG.SAVE_BATCH_IMAGES_RESULTS =  True
 _C.DEBUG.SAVE_EMBED_VIS =  True
 
+_C.WANDB = CN()
+_C.WANDB.PROJECT = "my-project"
+_C.WANDB.NAME = "exp-hrnet-kfold"
+
 
 def update_config(cfg, args):
     cfg.defrost()
