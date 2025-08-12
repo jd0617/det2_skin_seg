@@ -4,7 +4,7 @@ import numpy as np
 import argparse
 import logging
 from datetime import timedelta, datetime
-
+from pathlib import Path
 
 from collections import defaultdict
 from detectron2.config import get_cfg
@@ -35,15 +35,50 @@ class MyTrainer(DefaultTrainer):
     @classmethod
     def build_evaluator(cls, cfg, dataset_name, output_folder=None):
         return COCOEvaluator(dataset_name, output_folder or cfg.OUTPUT_DIR)
+    
+def build_inner_cfg(
+        cfg_file, train_name, test_name, out_dir, num_classes,
+        batch_size, 
 
-def run_nested_cv(base_ds_name: str, cfg, num_classes:int, 
-                  k_outer:int=5, k_inner:int=3, hp_grid=None,
-                  mask_on: bool = True):
-    if hp_grid is None:
-        hp_grid = [
-            {"base_lr": 2.5e-4, "max_iter": 4000},
-            {"base_lr": 1.0e-4, "max_iter": 7000},
-        ]
+)
+
+def run_nested_cv(base_ds_name: str, cfg, output_dir, num_classes:int, 
+                  k_outer:int=5, k_inner:int=3,
+                  mask_on: bool = True, seed:int=24):
+
+    records = get_records(base_ds_name)
+    groups = get_groups_from_records(records)
+    idx_all = np.arange(len(records))
+
+    outer_results = []
+
+    for o_fold, (outer_tr_idx, outer_te_idx) in enumerate(group_kfold_indices(groups, n_splits=k_outer, seed=seed)):
+        
+        hp_scores = defaultdict(list)
+
+        ofold_prefix = f"ofold_{o_fold}"
+        ofold_output_dir = Path(output_dir) / ofold_prefix
+
+        for i_fold, (inner_tr_rel, inner_va_rel) in enumerate(
+            group_kfold_indices(groups[outer_tr_idx], n_splits=k_inner, seed=123)):
+            
+            ifold_prefix = f"ifold_{i_fold}"
+            ifold_output_dir = Path(ofold_output_dir) / ifold_prefix
+
+            inner_tr_idx = outer_tr_idx[inner_tr_rel]
+            inner_va_idx = outer_tr_idx[inner_va_rel]
+
+            inner_tr_name = f"o{o_fold}_inner_tr_{i_fold}"
+            inner_va_name = f"o{o_fold}_inner_va_{i_fold}"
+
+            register_split(inner_tr_name, records, inner_tr_idx, base_ds_name)
+            register_split(inner_va_name, records, inner_va_idx, base_ds_name)
+
+            ifold_cfg = 
+
+
+
+
     
 def main():
     args = parser.parse_args()
@@ -61,11 +96,8 @@ def run_nested_cv(base_dataset_name: str,
                   hrnet_name: str = "hrnet_w32",
                   mask_on: bool = True):
 
-    records = get_records(base_dataset_name)
-    groups = get_groups_from_records(records)
-    idx_all = np.arange(len(records))
 
-    outer_results = []
+
 
     for o_fold, (outer_tr_idx, outer_te_idx) in enumerate(group_kfold_indices(groups, n_splits=k_outer, seed=42)):
         # INNER SEARCH on outer-train
