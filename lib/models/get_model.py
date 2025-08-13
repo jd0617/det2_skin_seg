@@ -8,6 +8,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as nnf
 
+from ..core.loss import get_loss_fn
+
 BN_MOMENTUM = 0.1
 
 @META_ARCH_REGISTRY.register()
@@ -28,9 +30,18 @@ class HRNet_SEG(nn.Module):
             nn.Conv2d(64, self.num_masks, 1, stride=1, padding=0),
         )
 
+        self.criteion = self._make_criterion(cfg)
+
         self.init_weights(cfg.MODEL.PRETRAINED)
+
+    def _make_criterion(self, cfg):
+        return get_loss_fn(cfg)
+
     
     def forward(self, x):
+
+
+        x = torch.stack([xe['image'] for xe in x])
         x = self.backbone(x)
 
         x0_h, x0_w = x[0].size(2), x[0].size(3)
@@ -41,7 +52,14 @@ class HRNet_SEG(nn.Module):
         x = torch.cat([x[0], x1, x2, x3], 1)
         x = self.seg_head(x)
 
-        return x
+        if self.training:
+            gt = torch.stack([xe['instance'].gt_masks.tensor for xe in x])
+            loss = self.criterion(x, gt)
+            output = {'loss': loss}
+        else:
+            output = {'mask_logits': x}
+
+        return output
 
     def init_weights(self, pretrained=""):
         for m in self.modules():
