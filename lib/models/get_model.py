@@ -40,7 +40,6 @@ class HRNet_SEG(nn.Module):
     
     def forward(self, x):
 
-
         x = torch.stack([xe['image'] for xe in x])
         x = self.backbone(x)
 
