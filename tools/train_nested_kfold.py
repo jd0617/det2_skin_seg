@@ -36,11 +36,21 @@ class MyTrainer(DefaultTrainer):
     def build_evaluator(cls, cfg, dataset_name, output_folder=None):
         return COCOEvaluator(dataset_name, output_folder or cfg.OUTPUT_DIR)
     
-def build_inner_cfg(
-        cfg_file, train_name, test_name, out_dir, num_classes,
-        batch_size, 
+def build_inner_cfg(cfg_file, train_name, test_name, output_dir):
 
-)
+    cfg = get_cfg()
+    
+    if isinstance(cfg_file, str):
+        cfg.merge_from_file(cfg)
+    else:
+        cfg.merge_from_other_cfg(cfg_file)
+
+    cfg.TRAIN_NAME = train_name
+    cfg.TEST_NAME = test_name
+    cfg.OUTPUT_DIR = output_dir
+
+    return cfg
+
 
 def run_nested_cv(base_ds_name: str, cfg, output_dir, num_classes:int, 
                   k_outer:int=5, k_inner:int=3,
@@ -74,7 +84,20 @@ def run_nested_cv(base_ds_name: str, cfg, output_dir, num_classes:int,
             register_split(inner_tr_name, records, inner_tr_idx, base_ds_name)
             register_split(inner_va_name, records, inner_va_idx, base_ds_name)
 
-            ifold_cfg = 
+            ifold_cfg = bulid_inner_cfg(cfg, inner_tr_name, inner_va_name, ifold_output_dir)
+
+            trainer = MyTrainer(ifold_cfg)
+            trainer.resume_or_load(False)
+            trainer.train()
+
+            evaluator = COCOEvalautor(inner_va_name, output_dir=ifold_output_dir)
+            val_loader = build_detection_test_loader(ifold_cfg, inner_va_name)
+
+            val_res = inference_on_dataset(trainer.model, val_loader, evalautor)
+
+
+
+
 
 
 
@@ -95,9 +118,6 @@ def run_nested_cv(base_dataset_name: str,
                   hp_grid = None,
                   hrnet_name: str = "hrnet_w32",
                   mask_on: bool = True):
-
-
-
 
     for o_fold, (outer_tr_idx, outer_te_idx) in enumerate(group_kfold_indices(groups, n_splits=k_outer, seed=42)):
         # INNER SEARCH on outer-train
