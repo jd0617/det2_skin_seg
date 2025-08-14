@@ -1,11 +1,16 @@
 from detectron2.evaluation import DatasetEvaluator
-from torchmetrics.functional import dice
 
 import logging
 import torch
 
 from .metrics import dice_score_np, dice_score_calc, get_confusion_metrics
 from .vis import save_batch_img_with_mask
+
+try:
+    from torchmetrics.functional import dice
+except ImportError:
+    frp,m 
+
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +28,9 @@ class MyEvaluator(DatasetEvaluator):
             gt_masks = input["instances"].gt_masks.tensor  # (num_gt, H, W)
             pred_masks = output["instances"].pred_masks
 
-            assert gt_mask.s
+            num_gt, num_pred = gt_masks.shape[0], pred_masks.shape[0]
+
+            assert num_gt == num_pred, f"Mismatch: {num_gt} GT masks vs {num_pred} predicted masks"
 
             if self.from_logits:
                 pred_masks = torch.sigmoid(pred_masks)
