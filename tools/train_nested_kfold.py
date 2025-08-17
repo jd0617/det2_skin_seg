@@ -59,9 +59,7 @@ def build_inner_cfg(cfg_file, train_name, test_name, output_dir):
     return cfg
 
 
-def run_nested_cv(base_ds_name: str, cfg, output_dir, num_classes:int, 
-                  k_outer:int=5, k_inner:int=3,
-                  mask_on: bool = True, seed:int=24):
+def run_nested_cv(base_ds_name: str, cfg, output_dir, k_outer:int=5, k_inner:int=3, seed:int=24):
 
     records = get_records(base_ds_name)
     groups = get_groups_from_records(records)
@@ -109,9 +107,6 @@ def run_nested_cv(base_ds_name: str, cfg, output_dir, num_classes:int,
             val_loader = build_detection_test_loader(ifold_cfg, inner_va_name)
 
             val_res = inference_on_dataset(trainer.model, val_loader, evaluator)
-            key = "segm" if mask_on and "segm" in val_res else "bbox"
-
-            model_grid[]
 
 
 
@@ -129,3 +124,15 @@ def main():
 
     start_datetime = datetime.now()
     start_time = time.monotonic()
+
+    DATASET_NAME = "all_ds"
+
+    register_dataset(DATASET_NAME, cfg, cfg.DATASET.ANNO_DIR)
+
+    run_nested_cv(base_ds_name=DATASET_NAME, cfg=cfg, outptu_dir=cfg.OUTPUT_DIR, 
+                  k_outer=cfg.KFOLD, k_inner=cfg.VAL_K_FOLD, seed=cfg.SEED)
+
+
+
+    
+

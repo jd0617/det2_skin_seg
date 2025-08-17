@@ -38,13 +38,18 @@ def load_coco(json_file, img_root):
 def get_patient_id(anno):
     return str(anno["patient_id"])
 
-def register_dataset(name: str, json_file: str, img_root: str):
+def register_dataset(name: str, json_file: str, img_root: str): #, coco_style:bool=False
     if name in DatasetCatalog.list():
         logger.info(f"Found existed {name}, removing existed {name}...")
         DatasetCatalog.remove(name)
 
+    # if coco_style:
+    #     logger.info(f"Registering {name} in COCO style...")
+    #     register_cooc_instances(name, {}, json_file, img_root)
+    # else:
     logger.info(f"Registering {name}...")
     DatasetCatalog.register(name, lambda: load_coco(json_file, img_root)) # , attach_pid_if_missing=True
+    
     logger.info("Done!")
 
 ### K-Fold related functions
@@ -75,4 +80,3 @@ def register_split(name, base_records, indices):
         DatasetCatalog.remove(name)
 
     DatasetCatalog.register(name, lambda s=subset: deepcopy(s))
-
