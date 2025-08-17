@@ -2,6 +2,7 @@ from detectron2.evaluation import DatasetEvaluator
 
 import logging
 import torch
+import torch.nn.functinal as nnf
 import torchvision.transforms as T
 
 from tqdm import tqdm
@@ -12,19 +13,28 @@ from .vis import save_batch_img_with_mask
 try:
     from torchmetrics.functional import dice
 except ImportError:
-    frp,m 
+    from torchmetrics.functional.segmentation import dice_score
+    dice = partial(dice_score, num_classes=2)
 
 
 logger = logging.getLogger(__name__)
 
-class MyEvaluator(DatasetEvaluator):
-    def __init__(self, cfg, from_logits=True, threshold=0.5, vis_dir=None):
+
+
+class DiceScoreEvaluator(DatasetEvaluator):
+    def __init__(self, cfg, from_logits=True, threshold=0.5, mode:str='train'): # , vis=True, filename='vis.png'
         self.results = []
 
         self.cfg = cfg
         self.from_logits = from_logits
         self.threshold = threshold
-        self.vis_dir = vis_dir
+        self.mode = mode.lower()
+        self.vis_root = cfg.OUTPUT_DIR + "/vis_train" if mode == 'train' else cfg.OUTPUT_DIR + "/vis_test"
+
+        # self.vis = vis
+        # if vis:
+        #     Path(self.vis_root).mkdir(parents=True, exist_ok=True)
+        # self.filename = filename
 
     def reset(self):
         self.results = []
@@ -48,64 +58,97 @@ class MyEvaluator(DatasetEvaluator):
 
             self.results.append(dice_score)
 
+        # if self.vis:
+        #     self.vis_batch(inputs, outputs, self.vis_root + "/vis_batch.png")
+
+
     def evaluate(self):
         if len(self.results) == 0:
             return {"Dice": float("nan")}
         return {"Dice": sum(self.results) / len(self.results)}
 
-    def vis_batch(self, inputs, outputs):
+    # def vis_batch(self, inputs, outputs, save_path):
 
-        assert len(inputs) == len(outputs), "Inputs and outputs must have the same length"
+    #     # assert len(inputs) == len(outputs), "Inputs and outputs must have the same length"
 
-        pad = partial(cv2.copyMakeBorder, top=3, bottom=3, left=10, right=10, borderType=cv2.BORDER_CONSTANT)
+    #     font = cv2.FONT_HERSHEY_SIMPLEX
+    #     fontScale = 1.0
+    #     clr = (255, 0, 0)
+    #     thickness = 2
 
-        pad_img = partial(cv2.copyMakeBorder, top=3, bottom=3, left=2, right=2, borderType=cv2.BORDER_CONSTANT)
+    #     h = self.cfg.DATASET.IMG_SIZE[1]
+    #     w = self.cfg.DATASET.IMG_SIZE[0]
 
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        fontScale = 1.0
-        clr = (255, 0, 0)
-        thickness = 2
+    #     batch_size = len(outputs)
 
-        h = self.cfg.DATASET.IMG_SIZE[1]
-        w = self.cfg.DATASET.IMG_SIZE[0]
+    #     x = w//4 + 50
 
-        batch_size = len(outputs)
+    #     put_text = partial(cv2.putText, org=(x, 60), fontFace=font, fontScale=fontScale, color=clr, thickness=thickness)
+    #     nnf_pad = partial(nnf.pad, pad=(5, 5, 5, 5), mode='constant', value=255)
 
-        x = w//4 + 50
+    #     img_root = self.cfg.DATASET.IMG_DIR
 
-        put_text = partial(cv2.putText, org=(x, 60), fontFace=font, fontScale=fontScale, color=clr, thickness=thickness)
+    #     stacked_output = []
 
-        img_root = self.cfg.DATASET.IMG_DIR
+    #     for input, output in tqdm(zip(inputs, outputs)):
+    #         img_path = input["file_name"]
+    #         img_name = os.path.basename(img_path)
 
-        batch_output = []
+    #         ori_img = cv2.imread(img_path)
+    #         ori_img = cv2.cvtColor(ori_img, cv2.COLOR_BGR2RGB)
 
-        for input, output in tqdm(zip(inputs, outputs)):
-            img_path = inpue["file_name"]
+    #         h, w, c = ori_img.shape
 
-            ori_img = cv2.imread(img_path)
-            ori_img = cv2.cvtColor(ori_img, cv2.COLOR_BGR2RGB)
-            ori_img = img.transpsoe(2, 0, 1) # (c, h, w)
-            # ori_img = T.ToTensor()(ori_img)
+    #         # ori_img = img.transpsoe(2, 0, 1) # (c, h, w)
+    #         # ori_img = T.ToTensor()(ori_img)
 
-            gt = input["instances"].gt_masks.tensor  # (num_gt, H, W)
-            pred = output["instances"].pred_masks
+    #         gt = input["instances"].gt_masks.tensor  # (num_gt, H, W)
+    #         pred = output["instances"].pred_masks
 
-            gt = gt.cpu().numpy()
-            pred = pred.cpu().numpy()
+    #         gt = gt.cpu()
+    #         pred = pred.cpu()
 
-            if pred.shape[2] != img.shape[2]:
-                pred = cv2.resize(pred, (img.shape[1], img.shape[0]), interpolation=cv2.INTER_NEAREST)
+    #         if pred.shape[2] != img.shape[2]:
+    #             pred = cv2.resize(pred, (img.shape[1], img.shape[0]), interpolation=cv2.INTER_NEAREST)
 
-            if gt.shape != img.shape:
-                gt = cv2.resize(gt, (img.shape[1], img.shape[0]), interpolation=cv2.INTER_NEAREST)
+    #         if gt.shape != img.shape:
+    #             gt = cv2.resize(gt, (img.shape[1], img.shape[0]), interpolation=cv2.INTER_NEAREST)
 
-            gt = np.clip(batch_gt*255., 0., 255.)
-            gt = np.repeat(gt, 3, axis=0)
+    #         gt = torch.clamp(gt*255., min=0., max=255.) # c, h, w
+    #         if gt.size(1) < h:
+    #             gt = nnf.interpolate(batch_gt, size=(h, w), mode='bilinear', align_corners=False)
 
+    #         pred = torch.clamp(batch_pred*255., min=0., max=255.)
+    #         if pred.size(1) < h:
+    #             pred = nnf.interpolate(pred, size=(h, w), mode='bilinear', align_corners=False)
 
+    #         ori_img = put_text(ori_img, img_name)
+    #         ori_img = torch.from_numpy(ori_img).permute(2, 0, 1)
+            
+    #         ori_img = nnf_pad(ori_img)
+    #         gt = nnf_pad(gt)
+    #         pred = nnf_pad(pred)
+    #         _, ph, pw = preds.shape
 
+    #         gt = torch.cat(gt.chunk(15, dim=0), dim=1)
+    #         gt = gt.repeat(3, 1, 1) # [3, h, w*b]
 
+    #         pred = torch.cat(pred.chunk(15, dim=0), dim=1)
+    #         pred = pred.repeat(3, 1, 1) # [3, h, w*b]
+    #         pred = torch.cat([torch.zeros([3, ph, pw]), preds], 2)
 
+    #         img_gt = torch.cat([ori_img, gt], 2)
+    #         img_gt_pred = torch,cat([img_gt, pred], 1)
+
+    #         stacked_output.append(img_gt_pred)
+
+    #     stacked_output = torch.stack(stacked_output)
+
+    #     grid = torchvision.utils.make_grid(stacked_output, nrow=1, padding=5, pad_value=255)
+    #     grid = grid.byte().permute(1, 2, 0).cpu().numpy()
+    #     grid = cv2.cvtColor(grid, cv2.COLOR_RGB2BGR)
+
+    #     cv2.imwrite(save_path, grid)
 
 
 

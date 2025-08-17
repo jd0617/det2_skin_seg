@@ -17,6 +17,7 @@ import _init_paths
 from dataset.utils import register_dataset, get_records, get_groups_from_records, group_kfold_indices, register_split
 from models import get_model
 from config import cfg, update_config
+from core import DiceScoreEvaluator
 
 
 config_parser = parser = argparse.ArgumentParser(description='Training Config', add_help=False)
@@ -31,13 +32,17 @@ parser.add_argument('--record-base', default='', type=str, metavar='PATH',
 parser.add_argument('--output-dir', default='', type=str, metavar='PATH',
                     help='path to output folder (default: none, current dir)')
 
+
+def build_dice_score_evaluator(cfg, from_logits, threshold, mode='train'):
+    return DiceScoreEvaluator(cfg, from_logits, threshold, mode)
+
 class MyTrainer(DefaultTrainer):
     @classmethod
-    def build_evaluator(cls, cfg, dataset_name, output_folder=None):
-        return COCOEvaluator(dataset_name, output_folder or cfg.OUTPUT_DIR)
-    
-def bulid_trainer()
-    
+    def build_evaluator(cfg=self.cfg):
+        return DiceScoreEvaluator(cfg, from_logits=cfg.MODEL.FROM_LOGITS, threshold=0.7, mode='train')
+        # return COCOEvaluator(dataset_name, output_folder or cfg.OUTPUT_DIR)
+
+
 def build_inner_cfg(cfg_file, train_name, test_name, output_dir):
 
     cfg = get_cfg()
@@ -70,6 +75,9 @@ def run_nested_cv(base_ds_name: str, cfg, output_dir, num_classes:int,
 
         ofold_prefix = f"ofold_{o_fold}"
         ofold_output_dir = Path(output_dir) / ofold_prefix
+        ofold_output_dir.mkdir(parents=True, exist_ok=True)
+
+        ofold_cfg = build_inner_cfg(cfg, f"o{o_fold}_tr", f"o{o_fold}_te", ofold_output_dir)
 
         perf_grid = {}
 
@@ -80,6 +88,7 @@ def run_nested_cv(base_ds_name: str, cfg, output_dir, num_classes:int,
             
             ifold_prefix = f"ifold_{i_fold}"
             ifold_output_dir = Path(ofold_output_dir) / ifold_prefix
+            ifold_output_dir.mkdir(parents=True, exist_ok=True)
 
             inner_tr_idx = outer_tr_idx[inner_tr_rel]
             inner_va_idx = outer_tr_idx[inner_va_rel]
@@ -96,7 +105,7 @@ def run_nested_cv(base_ds_name: str, cfg, output_dir, num_classes:int,
             trainer.resume_or_load(False)
             trainer.train()
 
-            evaluator = COCOEvaluator(inner_va_name, output_dir=ifold_output_dir)
+            evaluator = DiceScoreEvaluator(ifold_cfg, from_logits=ifold_cfg.MODEL.FROM_LOGITS, threshold=0.7, mode='valid')
             val_loader = build_detection_test_loader(ifold_cfg, inner_va_name)
 
             val_res = inference_on_dataset(trainer.model, val_loader, evaluator)
