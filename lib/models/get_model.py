@@ -1,4 +1,3 @@
-import hrnet
 import os
 
 from detectron2.modeling.meta_arch import META_ARCH_REGISTRY
@@ -8,7 +7,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as nnf
 
-from ..core.loss import get_loss_fn
+from lib.core.loss import get_loss_fn
+from ..models.hrnet import HighResolutionNet
 
 BN_MOMENTUM = 0.1
 
@@ -88,6 +88,6 @@ class HRNet_SEG(nn.Module):
 
 @BACKBONE_REGISTRY.register()
 def build_hrnet_backbone(cfg, input_c=3):
-    backbone = hrnet.HighResolutionNet(cfg, input_c)
+    backbone = HighResolutionNet(cfg, input_c)
 
     return backbone

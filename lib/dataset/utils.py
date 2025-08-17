@@ -5,7 +5,7 @@ import numpy as np
 
 from pathlib import Path
 
-from detectron2.data.datasets import register_cooc_instances
+from detectron2.data.datasets import register_coco_instances
 from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.data.datasets import load_coco_json
 
@@ -60,6 +60,21 @@ def get_records(name: str):
 def get_groups_from_records(records):
     return np.array([str(r.get("patient_id")) for r in records])
 
+def get_patient_ids(records) -> dict:
+    ptn_ids = {}
+    tmp = []
+
+    idx = 0
+
+    for i in records:
+        ptn_id = i.get("patient_id")
+        if ptn_id not in ptn_ids:
+            ptn_ids[idx] = ptn_id
+            idx += 1
+            tmp.append(ptn_id)
+        
+    return ptn_ids
+
 def group_kfold_indices(groups, n_splits=5, rng_seed=42):
     rng = np.random.default_rng(rng_seed)
     uniq = np.array(sorted(set(groups)))
@@ -80,3 +95,8 @@ def register_split(name, base_records, indices):
         DatasetCatalog.remove(name)
 
     DatasetCatalog.register(name, lambda s=subset: deepcopy(s))
+
+def get_groups_subset(records, indices):
+
+    subset = [records[i] for i in indices if i[""]]
+    

@@ -64,8 +64,8 @@ class DiceScoreEvaluator(DatasetEvaluator):
 
     def evaluate(self):
         if len(self.results) == 0:
-            return {"Dice": float("nan")}
-        return {"Dice": sum(self.results) / len(self.results)}
+            return {"dice_score": float("nan")}
+        return {"dice_score": sum(self.results) / len(self.results)}
 
     # def vis_batch(self, inputs, outputs, save_path):
 

@@ -1,2 +1,2 @@
 import models.hrnet
-import get_model
+import models.get_model

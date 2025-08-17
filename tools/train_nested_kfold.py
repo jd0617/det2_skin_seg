@@ -22,7 +22,7 @@ from core import DiceScoreEvaluator
 
 config_parser = parser = argparse.ArgumentParser(description='Training Config', add_help=False)
 parser.add_argument('-c', '--cfg',
-                    default='/home/jd0617/Projects/Skin_Patch/skin_patch_segmentation/exps/hrnet/w32_only_complt.yaml',
+                    default='/home/jd0617/Projects/Skin_Patch/skin_patch_segmentation/exps/hrnet/w32_ori.yaml',
                     type=str, metavar='FILE',
                     help='YAML config file specifying default arguments')
 parser.add_argument('--ds-root', metavar='DIR', default='',
@@ -43,7 +43,7 @@ class MyTrainer(DefaultTrainer):
         # return COCOEvaluator(dataset_name, output_folder or cfg.OUTPUT_DIR)
 
 
-def build_inner_cfg(cfg_file, train_name, test_name, output_dir):
+def build_cfg(cfg_file, train_name, test_name, output_dir):
 
     cfg = get_cfg()
     
@@ -52,8 +52,8 @@ def build_inner_cfg(cfg_file, train_name, test_name, output_dir):
     else:
         cfg.merge_from_other_cfg(cfg_file)
 
-    cfg.TRAIN_NAME = train_name
-    cfg.TEST_NAME = test_name
+    cfg.TRAIN = train_name
+    cfg.TEST = test_name
     cfg.OUTPUT_DIR = output_dir
 
     return cfg
@@ -67,7 +67,12 @@ def run_nested_cv(base_ds_name: str, cfg, output_dir, k_outer:int=5, k_inner:int
 
     outer_results = []
 
-    for o_fold, (outer_tr_idx, outer_te_idx) in enumerate(group_kfold_indices(groups, n_splits=k_outer, seed=seed)):
+    outer_split = group_kfold_indices(groups, n_splits=k_outer)
+
+    best_score = -1
+    best_model_path = None
+
+    for o_fold, (outer_tr_idx, outer_te_idx) in enumerate(outer_split):
         
         hp_scores = defaultdict(list)
 
@@ -75,14 +80,13 @@ def run_nested_cv(base_ds_name: str, cfg, output_dir, k_outer:int=5, k_inner:int
         ofold_output_dir = Path(output_dir) / ofold_prefix
         ofold_output_dir.mkdir(parents=True, exist_ok=True)
 
-        ofold_cfg = build_inner_cfg(cfg, f"o{o_fold}_tr", f"o{o_fold}_te", ofold_output_dir)
+        test_name = f"o{o_fold}_te"
 
-        perf_grid = {}
+        ofold_cfg = build_inner_cfg(cfg, f"o{o_fold}_tr", test_name, ofold_output_dir)
 
-        model_grid = {}
+        inner_split = group_kfold_indices(groups[outer_tr_idx], n_splits=k_inner)
 
-        for i_fold, (inner_tr_rel, inner_va_rel) in enumerate(
-            group_kfold_indices(groups[outer_tr_idx], n_splits=k_inner, seed=123)):
+        for i_fold, (inner_tr_rel, inner_va_rel) in enumerate(inner_split):
             
             ifold_prefix = f"ifold_{i_fold}"
             ifold_output_dir = Path(ofold_output_dir) / ifold_prefix
@@ -94,10 +98,10 @@ def run_nested_cv(base_ds_name: str, cfg, output_dir, k_outer:int=5, k_inner:int
             inner_tr_name = f"o{o_fold}_inner_tr_{i_fold}"
             inner_va_name = f"o{o_fold}_inner_va_{i_fold}"
 
-            register_split(inner_tr_name, records, inner_tr_idx, base_ds_name)
-            register_split(inner_va_name, records, inner_va_idx, base_ds_name)
+            register_split(inner_tr_name, records, inner_tr_idx)
+            register_split(inner_va_name, records, inner_va_idx)
 
-            ifold_cfg = build_inner_cfg(cfg, inner_tr_name, inner_va_name, ifold_output_dir)
+            ifold_cfg = build_cfg(cfg, inner_tr_name, inner_va_name, ifold_output_dir)
 
             trainer = MyTrainer(ifold_cfg)
             trainer.resume_or_load(False)
@@ -108,6 +112,24 @@ def run_nested_cv(base_ds_name: str, cfg, output_dir, k_outer:int=5, k_inner:int
 
             val_res = inference_on_dataset(trainer.model, val_loader, evaluator)
 
+            score = val_res["dice_score"]
+
+            if score > best_score:
+                best_score = score
+                best_model_path = os.path.join(ifold_cfg.OUTPUT_DIR, 'model_final.pth')
+
+        register_split(test_name, records, outer_te_idx)
+
+        ofold_cfg = build_cfg(cfg, f"o{o_fold}_tr", test_name, ofold_output_dir)
+        ofold_cfg.MODEL.WEIGHTS = best_model_path
+        trainer = mYtrainer(ofold_cfg)
+        evaluator = DiceScoreEvaluator(ofold_cfg, from_logits=ofold_cfg.MODEL.FROM_LOGITS, threshold=0.7, mode='test')
+        test_loader = build_detection_test_loader(ofold_cfg, test_name)
+        test_res = inference_on_dataset(trainer.model, test_loader, evaluator)
+
+        outer_results.append(test_res)
+
+        
 
 
 
@@ -131,6 +153,8 @@ def main():
 
     run_nested_cv(base_ds_name=DATASET_NAME, cfg=cfg, outptu_dir=cfg.OUTPUT_DIR, 
                   k_outer=cfg.KFOLD, k_inner=cfg.VAL_K_FOLD, seed=cfg.SEED)
+
+    
 
 
 
