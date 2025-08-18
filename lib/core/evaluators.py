@@ -2,7 +2,7 @@ from detectron2.evaluation import DatasetEvaluator
 
 import logging
 import torch
-import torch.nn.functinal as nnf
+import torch.nn.functional as nnf
 import torchvision.transforms as T
 
 from tqdm import tqdm

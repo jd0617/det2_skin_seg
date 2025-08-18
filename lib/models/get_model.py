@@ -1,4 +1,7 @@
 import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from detectron2.modeling.meta_arch import META_ARCH_REGISTRY
 from detectron2.modeling import build_backbone, BACKBONE_REGISTRY, Backbone
@@ -7,8 +10,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as nnf
 
-from lib.core.loss import get_loss_fn
-from ..models.hrnet import HighResolutionNet
+from lib.core import get_loss_fn
+from .hrnet import HighResolutionNet
 
 BN_MOMENTUM = 0.1
 

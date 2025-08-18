@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as nnf
 
-from timm.models.layers import DropPath
+# from timm.models.layers import DropPath
 
 class SE(nn.Module):
     def __init__(self, dim_in, reduction=16):
@@ -159,41 +159,41 @@ class OutlookAttention(nn.Module):
         return x
 
 
-class Outlooker(nn.Module):
-    """
-    Implementation of outlooker layer: which includes outlook attention + MLP
-    Outlooker is the first stage in our VOLO
-    --dim: hidden dim
-    --num_heads: number of heads
-    --mlp_ratio: mlp ratio
-    --kernel_size: kernel size in each window for outlook attention
-    return: outlooker layer
-    """
-    def __init__(self, dim, kernel_size, padding, stride=1,
-                 num_heads=1,mlp_ratio=3., attn_drop=0.,
-                 drop_path=0., act_layer=nn.GELU,
-                 norm_layer=nn.LayerNorm, qkv_bias=False,
-                 qk_scale=None):
-        super().__init__()
-        self.norm1 = norm_layer(dim)
-        self.attn = OutlookAttention(dim, num_heads, kernel_size=kernel_size,
-                                     padding=padding, stride=stride,
-                                     qkv_bias=qkv_bias, qk_scale=qk_scale,
-                                     attn_drop=attn_drop)
+# class Outlooker(nn.Module):
+#     """
+#     Implementation of outlooker layer: which includes outlook attention + MLP
+#     Outlooker is the first stage in our VOLO
+#     --dim: hidden dim
+#     --num_heads: number of heads
+#     --mlp_ratio: mlp ratio
+#     --kernel_size: kernel size in each window for outlook attention
+#     return: outlooker layer
+#     """
+#     def __init__(self, dim, kernel_size, padding, stride=1,
+#                  num_heads=1,mlp_ratio=3., attn_drop=0.,
+#                  drop_path=0., act_layer=nn.GELU,
+#                  norm_layer=nn.LayerNorm, qkv_bias=False,
+#                  qk_scale=None):
+#         super().__init__()
+#         self.norm1 = norm_layer(dim)
+#         self.attn = OutlookAttention(dim, num_heads, kernel_size=kernel_size,
+#                                      padding=padding, stride=stride,
+#                                      qkv_bias=qkv_bias, qk_scale=qk_scale,
+#                                      attn_drop=attn_drop)
 
-        self.drop_path = DropPath(
-            drop_path) if drop_path > 0. else nn.Identity()
+#         self.drop_path = DropPath(
+#             drop_path) if drop_path > 0. else nn.Identity()
 
-        self.norm2 = norm_layer(dim)
-        mlp_hidden_dim = int(dim * mlp_ratio)
-        self.mlp = Mlp(in_features=dim,
-                       hidden_features=mlp_hidden_dim,
-                       act_layer=act_layer)
+#         self.norm2 = norm_layer(dim)
+#         mlp_hidden_dim = int(dim * mlp_ratio)
+#         self.mlp = Mlp(in_features=dim,
+#                        hidden_features=mlp_hidden_dim,
+#                        act_layer=act_layer)
 
-    def forward(self, x):
-        x = x + self.drop_path(self.attn(self.norm1(x)))
-        x = x + self.drop_path(self.mlp(self.norm2(x)))
-        return x
+#     def forward(self, x):
+#         x = x + self.drop_path(self.attn(self.norm1(x)))
+#         x = x + self.drop_path(self.mlp(self.norm2(x)))
+#         return x
 
 
 class TBSFF(nn.Module):

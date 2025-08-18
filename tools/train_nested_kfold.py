@@ -22,7 +22,7 @@ from core import DiceScoreEvaluator
 
 config_parser = parser = argparse.ArgumentParser(description='Training Config', add_help=False)
 parser.add_argument('-c', '--cfg',
-                    default='/home/jd0617/Projects/Skin_Patch/skin_patch_segmentation/exps/hrnet/w32_ori.yaml',
+                    default='/workspace/project/configs/hrnet/w32_ori.yaml',
                     type=str, metavar='FILE',
                     help='YAML config file specifying default arguments')
 parser.add_argument('--ds-root', metavar='DIR', default='',
@@ -38,7 +38,7 @@ def build_dice_score_evaluator(cfg, from_logits, threshold, mode='train'):
 
 class MyTrainer(DefaultTrainer):
     @classmethod
-    def build_evaluator(cfg=self.cfg):
+    def build_evaluator(cfg):
         return DiceScoreEvaluator(cfg, from_logits=cfg.MODEL.FROM_LOGITS, threshold=0.7, mode='train')
         # return COCOEvaluator(dataset_name, output_folder or cfg.OUTPUT_DIR)
 
@@ -46,6 +46,8 @@ class MyTrainer(DefaultTrainer):
 def build_cfg(cfg_file, train_name, test_name, output_dir):
 
     cfg = get_cfg()
+
+    cfg.MODEL.INIT_WEIGHTS = False
     
     if isinstance(cfg_file, str):
         cfg.merge_from_file(cfg)
@@ -82,7 +84,7 @@ def run_nested_cv(base_ds_name: str, cfg, output_dir, k_outer:int=5, k_inner:int
 
         test_name = f"o{o_fold}_te"
 
-        ofold_cfg = build_inner_cfg(cfg, f"o{o_fold}_tr", test_name, ofold_output_dir)
+        ofold_cfg = build_cfg(cfg, f"o{o_fold}_tr", test_name, ofold_output_dir)
 
         inner_split = group_kfold_indices(groups[outer_tr_idx], n_splits=k_inner)
 
@@ -122,22 +124,12 @@ def run_nested_cv(base_ds_name: str, cfg, output_dir, k_outer:int=5, k_inner:int
 
         ofold_cfg = build_cfg(cfg, f"o{o_fold}_tr", test_name, ofold_output_dir)
         ofold_cfg.MODEL.WEIGHTS = best_model_path
-        trainer = mYtrainer(ofold_cfg)
+        trainer = MyTrainer(ofold_cfg)
         evaluator = DiceScoreEvaluator(ofold_cfg, from_logits=ofold_cfg.MODEL.FROM_LOGITS, threshold=0.7, mode='test')
         test_loader = build_detection_test_loader(ofold_cfg, test_name)
         test_res = inference_on_dataset(trainer.model, test_loader, evaluator)
 
         outer_results.append(test_res)
-
-        
-
-
-
-
-
-
-
-
 
     
 def main():
@@ -149,14 +141,11 @@ def main():
 
     DATASET_NAME = "all_ds"
 
-    register_dataset(DATASET_NAME, cfg, cfg.DATASET.ANNO_DIR)
+    register_dataset(DATASET_NAME, cfg.DATASET.ANNO_DIR, cfg.DATASET.IMG_DIR)
 
-    run_nested_cv(base_ds_name=DATASET_NAME, cfg=cfg, outptu_dir=cfg.OUTPUT_DIR, 
-                  k_outer=cfg.KFOLD, k_inner=cfg.VAL_K_FOLD, seed=cfg.SEED)
-
-    
-
-
+    run_nested_cv(base_ds_name=DATASET_NAME, cfg=cfg, output_dir=cfg.OUTPUT_DIR,
+                  k_outer=cfg.K_FOLD, k_inner=cfg.VAL_K_FOLD, seed=cfg.SEED)
 
     
-
+if __name__ == "__main__":
+    main()
