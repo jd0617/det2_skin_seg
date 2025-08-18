@@ -45,9 +45,7 @@ class MyTrainer(DefaultTrainer):
 
 def build_cfg(cfg_file, train_name, test_name, output_dir):
 
-    cfg = get_cfg()
-
-    cfg.MODEL.INIT_WEIGHTS = False
+    cfg = cfg.clone()
     
     if isinstance(cfg_file, str):
         cfg.merge_from_file(cfg)
@@ -76,8 +74,6 @@ def run_nested_cv(base_ds_name: str, cfg, output_dir, k_outer:int=5, k_inner:int
 
     for o_fold, (outer_tr_idx, outer_te_idx) in enumerate(outer_split):
         
-        hp_scores = defaultdict(list)
-
         ofold_prefix = f"ofold_{o_fold}"
         ofold_output_dir = Path(output_dir) / ofold_prefix
         ofold_output_dir.mkdir(parents=True, exist_ok=True)
