@@ -11,7 +11,7 @@ from detectron2.config import get_cfg
 from detectron2.engine import DefaultTrainer
 from detectron2.evaluation import COCOEvaluator, inference_on_dataset
 from detectron2.data import build_detection_test_loader
-from detectron2 import model_zoo
+from detectron2.utils import comm
 
 import _init_paths
 from dataset.utils import register_dataset, get_records, get_groups_from_records, group_kfold_indices, register_split
@@ -43,18 +43,32 @@ class MyTrainer(DefaultTrainer):
         # return COCOEvaluator(dataset_name, output_folder or cfg.OUTPUT_DIR)
 
 
-def build_cfg(cfg_file, train_name, test_name, output_dir):
+def build_cfg(cfg_file, train_name, test_name, output_dir, num_samples=0):
 
-    cfg = cfg.clone()
+    # cfg = cfg.clone()
     
-    if isinstance(cfg_file, str):
-        cfg.merge_from_file(cfg)
-    else:
-        cfg.merge_from_other_cfg(cfg_file)
+    # if isinstance(cfg_file, str):
+    #     cfg.merge_from_file(cfg)
+    # else:
+    #     cfg.merge_from_other_cfg(cfg_file)
 
-    cfg.TRAIN = train_name
-    cfg.TEST = test_name
+    train_name = str(train_name)
+    test_name = str(test_name)
+    output_dir = str(output_dir)
+
+    cfg = cfg_file.clone()
+    cfg.defrost()
+
+    batch_size = cfg.SOLVER.IMS_PER_BATCH
+    epochs = cfg.SOLVER.EPOCHS
+    total_steps = (num_samples // batch_size) * epochs
+
+    cfg.DATASETS.TRAIN = train_name
+    cfg.DATASETS.TEST = test_name
     cfg.OUTPUT_DIR = output_dir
+    cfg.SOLVER.max_iter = total_steps
+
+    cfg.freeze()
 
     return cfg
 
@@ -99,7 +113,7 @@ def run_nested_cv(base_ds_name: str, cfg, output_dir, k_outer:int=5, k_inner:int
             register_split(inner_tr_name, records, inner_tr_idx)
             register_split(inner_va_name, records, inner_va_idx)
 
-            ifold_cfg = build_cfg(cfg, inner_tr_name, inner_va_name, ifold_output_dir)
+            ifold_cfg = build_cfg(cfg, inner_tr_name, inner_va_name, ifold_output_dir, len(inner_tr_rel))
 
             trainer = MyTrainer(ifold_cfg)
             trainer.resume_or_load(False)
@@ -130,6 +144,8 @@ def run_nested_cv(base_ds_name: str, cfg, output_dir, k_outer:int=5, k_inner:int
     
 def main():
     args = parser.parse_args()
+    if not hasattr(comm, "REFERENCE_WORLD_SIZE"):
+        comm.REFERENCE_WORLD_SIZE = comm.get_world_size()
     update_config(cfg, args)
 
     start_datetime = datetime.now()
@@ -137,7 +153,7 @@ def main():
 
     DATASET_NAME = "all_ds"
 
-    register_dataset(DATASET_NAME, cfg.DATASET.ANNO_DIR, cfg.DATASET.IMG_DIR)
+    register_dataset(DATASET_NAME, cfg.DATASETS.ANNO_DIR, cfg.DATASETS.IMG_DIR)
 
     run_nested_cv(base_ds_name=DATASET_NAME, cfg=cfg, output_dir=cfg.OUTPUT_DIR,
                   k_outer=cfg.K_FOLD, k_inner=cfg.VAL_K_FOLD, seed=cfg.SEED)

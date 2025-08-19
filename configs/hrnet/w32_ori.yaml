@@ -9,17 +9,14 @@ SEED: 24
 RECORD_BASE: '/tmp/only_complete_600x1200/kfold_inner_random_oc' #'/home/jd0617/Saved/cls_by_patient/rgb' '/tmp/testestes' # 
 OUTPUT_DIR: 'hrnet/result'
 
-WORKERS: 4
-PRINT_FREQ: 5
-AMP: true
-PIN_MEMORY: true
-
 K_FOLD: 5
 VAL_K_FOLD: 3
 RESUME_K: 3 # idx start from 0
 RESUME_INNER_K: 0 # idx start from 0
+DATALOADER:
+  NUM_WORKERS: 4
 
-DATASET:
+DATASETS:
   DATASET: CompletePatch # CellByPatient
   IMG_DIR: "/workspace/datasets/seg_by_patient/preprocessed/pos_cropped_patch_all_r1_r2"
   ANNO_DIR: "/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/pre_all_complete_merge.json"
@@ -30,22 +27,26 @@ DATASET:
   SHUFFLE: true
   KFOLD_LIST: '' #'/home/jd0617/Datasets_Models/Datasets/seg_by_patient/anno/k5_v3_patient_list.json' 
 
+INPUT:
+  MIN_SIZE_TRAIN: (600, )
+  MAX_SIZE_TRAIN: 1200
+  RANDOM_FLIP: 'none'
+  CROP:
+    ENABLED: False
+  FORMAT: 'RGB'
+  MASK_FORMAT: "polygon"
+
 MODEL:
   INIT_WEIGHTS: true
-  MODEL: hrnet
+  META_ARCHITECTURE: HRNet_SEG
   PRETRAINED: '' #'/home/jd0617/Saved/ham10k_seg/hrnet_w32_result_DiceLossWithBCE/output/w32_ham10k/model_best.pth'
   PRETRAINED_STRICT: False
-  IMG_SIZE: [600, 1200]
   MASK_SHAPE: [150, 300]
-  POL_TO_BOX: False
-  TO_HSV: False
-  GAUSS_BLUR: False
-  BILATERAL_FILTER: False
   MINMAX: True
   NUM_MASKS: 15
   FROM_LOGITS: True
+  ALIGN_CORNERS: True
   EXTRA:
-    ALIGN_CORNERS: True
     PRETRAINED_LAYERS:
       - 'conv1'
       - 'bn1'
@@ -132,3 +133,32 @@ DEBUG:
   DEBUG: true
   SAVE_BATCH_IMAGES_RESULTS: true
   SAVE_EMBED_VIS: true
+
+SOLVER:
+  IMS_PER_BATCH: 16
+  BASE_LR: 0.002
+  MAX_ITER: 480 # (num_samples / batch_size) × num_epochs
+
+  LR_SCHEDULER_NAME : "WarmupMultiStepLR"
+  
+  MOMENTUM : 0.9
+  NESTEROV : False
+  WEIGHT_DECAY : 0.0001
+  WEIGHT_DECAY_NORM : 0.0
+
+  GAMMA : 0.1
+  STEPS : (400, 460)
+
+  CHECKPOINT_PERIOD : 50
+  REFERENCE_WORLD_SIZE : 1
+
+  BIAS_LR_FACTOR : 1.0
+  WEIGHT_DECAY_BIAS : None  # None means following WEIGHT_DECAY
+
+  CLIP_GRADIENTS:
+    ENABLED: False
+    CLIP_TYPE : "value"
+    CLIP_VALUE : 1.0
+    NORM_TYPE : 2.0
+  AMP: 
+    ENABLED: True

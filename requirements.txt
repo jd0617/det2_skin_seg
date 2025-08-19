@@ -9,4 +9,4 @@ EasyDict
 scikit-image
 yacs
 scikit-learn
-torchmetrics #=1.3.2
+torchmetrics==1.3.2
