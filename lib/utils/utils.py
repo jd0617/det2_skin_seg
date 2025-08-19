@@ -39,10 +39,10 @@ def create_logger(cfg, cfg_path, phase='train', create_log_dir=True):
         print('=> creating {}'.format(root_output_dir))
         root_output_dir.mkdir(parents=True, exist_ok=True)
 
-    dataset = cfg.DATASET.DATASET
+    dataset = cfg.DATASETS.DATASET
 
     dataset = dataset.replace(':', '_')
-    model = f"{cfg.MODEL.MODEL}_{cfg.MODEL.NUM_LAYERS}"
+    model = cfg.MODEL.META_ARCHITECTURE
     cfg_name = os.path.basename(cfg_path).split('.')[0]
 
     final_output_dir = root_output_dir / "output" / cfg_name

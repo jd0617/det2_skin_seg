@@ -6,7 +6,7 @@ CUDNN:
 GPUS: (0,)
 SEED: 24
 
-RECORD_BASE: '/tmp/only_complete_600x1200/kfold_inner_random_oc' #'/home/jd0617/Saved/cls_by_patient/rgb' '/tmp/testestes' # 
+RECORD_BASE: './record/only_complete_600x1200/kfold_inner_random_oc' #'/home/jd0617/Saved/cls_by_patient/rgb' '/tmp/testestes' # 
 OUTPUT_DIR: 'hrnet/result'
 
 K_FOLD: 5

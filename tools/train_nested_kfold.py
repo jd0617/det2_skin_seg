@@ -18,6 +18,7 @@ from dataset.utils import register_dataset, get_records, get_groups_from_records
 from models import get_model
 from config import cfg, update_config
 from core import DiceScoreEvaluator
+from utils.utils import  create_logger
 
 
 config_parser = parser = argparse.ArgumentParser(description='Training Config', add_help=False)
@@ -71,6 +72,13 @@ def build_cfg(cfg_file, train_name, test_name, output_dir, num_samples=0):
     cfg.freeze()
 
     return cfg
+
+def update_cfg_with_args(cfg, arg_key, arg_value):
+    cfg.defrost()
+
+    cfg.arg_key = arg_value
+
+    cfg.freeze()
 
 
 def run_nested_cv(base_ds_name: str, cfg, output_dir, k_outer:int=5, k_inner:int=3, seed:int=24):
@@ -151,12 +159,26 @@ def main():
     start_datetime = datetime.now()
     start_time = time.monotonic()
 
+    logger, final_output_dir, tb_log_dir = create_logger(
+        cfg, args.cfg, 'train')
+    
+    update_cfg_with_args(cfg, 'OUTPUT_DIR', args.output_dir)
+
     DATASET_NAME = "all_ds"
 
     register_dataset(DATASET_NAME, cfg.DATASETS.ANNO_DIR, cfg.DATASETS.IMG_DIR)
 
     run_nested_cv(base_ds_name=DATASET_NAME, cfg=cfg, output_dir=cfg.OUTPUT_DIR,
                   k_outer=cfg.K_FOLD, k_inner=cfg.VAL_K_FOLD, seed=cfg.SEED)
+    
+    end_time = time.monotonic()
+    end_datetime = datetime.now()
+
+    duration = timedelta(seconds=end_time - start_time)
+    logger.info("Experiment start at: {}".format(start_datetime))
+    logger.info("Experiment End Time: {}".format(end_datetime))
+    logger.info("Time taken: {}".format(duration))
+    logger.info("Results available at: {}".format(final_output_dir))
 
     
 if __name__ == "__main__":
