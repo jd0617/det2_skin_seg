@@ -3,7 +3,7 @@
 Diagram below shows only neccesary folders.
 
 ```
-${seg_}
+${seg_by_patient}
  `-- preprocessed
      |-- anno
      |   `-- coco_format
