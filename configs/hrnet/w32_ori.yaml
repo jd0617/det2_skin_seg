@@ -34,13 +34,14 @@ INPUT:
   CROP:
     ENABLED: False
   FORMAT: 'RGB'
-  MASK_FORMAT: "polygon"
+  MASK_FORMAT: "bitmask" #"polygon"
 
 MODEL:
   INIT_WEIGHTS: true
   META_ARCHITECTURE: HRNet_SEG
   PRETRAINED: '' #'/home/jd0617/Saved/ham10k_seg/hrnet_w32_result_DiceLossWithBCE/output/w32_ham10k/model_best.pth'
   PRETRAINED_STRICT: False
+  MASK_ON: True
   MASK_SHAPE: [150, 300]
   MINMAX: True
   NUM_MASKS: 15

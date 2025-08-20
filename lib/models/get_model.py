@@ -21,6 +21,7 @@ class HRNet_SEG(nn.Module):
         super().__init__()
         self.num_masks = cfg.MODEL.NUM_MASKS
         self.align_corners = cfg.MODEL.ALIGN_CORNERS
+        self.minmax = cfg.MODEL.MINMAX
 
         self.backbone = build_hrnet_backbone(cfg)
 
@@ -33,17 +34,43 @@ class HRNet_SEG(nn.Module):
             nn.Conv2d(64, self.num_masks, 1, stride=1, padding=0),
         )
 
-        self.criteion = self._make_criterion(cfg)
+        self.criterion = self._make_criterion(cfg)
 
         self.init_weights(cfg.MODEL.PRETRAINED)
 
     def _make_criterion(self, cfg):
         return get_loss_fn(cfg)
 
-    
-    def forward(self, x):
+    def minmax_norm_batch(self, tensor, eps=1e-8):
+        """
+        tensor: shape (B, C, H, W)
+        """
+        min_val = tensor.amin(dim=(2, 3), keepdim=True)  # shape: (B, C, 1, 1)
+        max_val = tensor.amax(dim=(2, 3), keepdim=True)  # shape: (B, C, 1, 1)
+        return (tensor - min_val) / (max_val - min_val + eps)
 
-        x = torch.stack([xe['image'] for xe in x])
+    def match_masks_number(self, masks: list, nof_masks=15):
+
+        output = []
+
+        for m in masks:
+            if m.shape[0] < nof_masks:
+                m = torch.cat([m, torch.zeros(nof_masks - m.shape[0], *m.shape[1:], dtype=m.dtype, device=m.device)], dim=0)
+            elif m.shape[0] > nof_masks:
+                m = m[:nof_masks]
+            output.append(m)
+
+        return torch.stack(output)
+
+    def forward(self, input_x):
+        device = next(self.parameters()).device
+
+        x = torch.stack([xe['image'] for xe in input_x])
+        x = x.to(device, non_blocking=True)
+
+        if self.minmax:
+            x = self.minmax_norm_batch(x)
+
         x = self.backbone(x)
 
         x0_h, x0_w = x[0].size(2), x[0].size(3)
@@ -55,7 +82,9 @@ class HRNet_SEG(nn.Module):
         x = self.seg_head(x)
 
         if self.training:
-            gt = torch.stack([xe['instance'].gt_masks.tensor for xe in x])
+            gt = [xe['instances'].gt_masks.tensor for xe in input_x]
+            gt = self.match_masks_number(gt, self.num_masks)
+            gt = gt.to(device, non_blocking=True)
             loss = self.criterion(x, gt)
             output = {'loss': loss}
         else:
