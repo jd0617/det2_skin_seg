@@ -241,7 +241,7 @@ class DiceLossWithBCE(nn.Module):
             target = target.unsqueeze(1)
         
         target = target.to(dtype=pred.dtype)
-        target = nnf.interpolate(target, size=pred.shape[-2:], mode='nearest').int()
+        target = nnf.interpolate(target, size=pred.shape[-2:], mode='nearest')
 
         if from_logits:
             dice_loss = self.dice_loss_fn(nnf.sigmoid(pred), target)
