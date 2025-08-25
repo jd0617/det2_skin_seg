@@ -32,7 +32,7 @@ class HRNet_SEG(nn.Module):
             nn.BatchNorm2d(64, momentum=BN_MOMENTUM),
             nn.ReLU(inplace=True),
             nn.Conv2d(64, self.num_masks, 1, stride=1, padding=0),
-        )
+        ) 
 
         self.criterion = self._make_criterion(cfg)
 

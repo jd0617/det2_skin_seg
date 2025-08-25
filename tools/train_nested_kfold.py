@@ -8,6 +8,7 @@ from pathlib import Path
 
 from collections import defaultdict
 from detectron2.config import get_cfg
+from detectron2.modeling import build_model
 from detectron2.engine import DefaultTrainer
 from detectron2.evaluation import COCOEvaluator, inference_on_dataset
 from detectron2.data import build_detection_test_loader
@@ -43,6 +44,11 @@ class MyTrainer(DefaultTrainer):
         return DiceScoreEvaluator(cfg, from_logits=cfg.MODEL.FROM_LOGITS, threshold=0.7, mode='train')
         # return COCOEvaluator(dataset_name, output_folder or cfg.OUTPUT_DIR)
 
+    @classmethod
+    def build_model(cls, cfg):
+        model = build_model(cfg)
+
+        return model
 
 def build_cfg(cfg_file, train_name, test_name, output_dir, num_samples=0):
 
@@ -71,17 +77,23 @@ def build_cfg(cfg_file, train_name, test_name, output_dir, num_samples=0):
 
     cfg.freeze()
 
+    print(f"Batch size: {batch_size}")
+    print(f"Epochs: {epochs}")
+    print(f"Total training steps: {total_steps}")
+
     return cfg
 
 def update_cfg_with_args(cfg, arg_key, arg_value):
     cfg.defrost()
+
+    arg_key = arg_key.upper()
 
     cfg.arg_key = arg_value
 
     cfg.freeze()
 
 
-def run_nested_cv(base_ds_name: str, cfg, output_dir, k_outer:int=5, k_inner:int=3, seed:int=24):
+def run_nested_cv(logger, base_ds_name: str, cfg, output_dir, k_outer:int=5, k_inner:int=3, seed:int=24):
 
     records = get_records(base_ds_name)
     groups = get_groups_from_records(records)
@@ -101,6 +113,8 @@ def run_nested_cv(base_ds_name: str, cfg, output_dir, k_outer:int=5, k_inner:int
         ofold_output_dir.mkdir(parents=True, exist_ok=True)
 
         test_name = f"o{o_fold}_te"
+
+        logger.info(f"Running outer fold {o_fold}")
 
         ofold_cfg = build_cfg(cfg, f"o{o_fold}_tr", test_name, ofold_output_dir)
 
@@ -123,6 +137,8 @@ def run_nested_cv(base_ds_name: str, cfg, output_dir, k_outer:int=5, k_inner:int
 
             ifold_cfg = build_cfg(cfg, inner_tr_name, inner_va_name, ifold_output_dir, len(inner_tr_rel))
 
+            logger.info(f"====> Running inner fold {o_fold}-{i_fold}")
+
             trainer = MyTrainer(ifold_cfg)
             trainer.resume_or_load(False)
             trainer.train()
@@ -137,6 +153,8 @@ def run_nested_cv(base_ds_name: str, cfg, output_dir, k_outer:int=5, k_inner:int
             if score > best_score:
                 best_score = score
                 best_model_path = os.path.join(ifold_cfg.OUTPUT_DIR, 'model_final.pth')
+
+        logger.info(f"Testing outer fold {o_fold}")
 
         register_split(test_name, records, outer_te_idx)
 
@@ -168,7 +186,7 @@ def main():
 
     register_dataset(DATASET_NAME, cfg.DATASETS.ANNO_DIR, cfg.DATASETS.IMG_DIR)
 
-    run_nested_cv(base_ds_name=DATASET_NAME, cfg=cfg, output_dir=cfg.OUTPUT_DIR,
+    run_nested_cv(logger, base_ds_name=DATASET_NAME, cfg=cfg, output_dir=cfg.OUTPUT_DIR,
                   k_outer=cfg.K_FOLD, k_inner=cfg.VAL_K_FOLD, seed=cfg.SEED)
     
     end_time = time.monotonic()

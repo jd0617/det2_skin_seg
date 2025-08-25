@@ -6,7 +6,7 @@ CUDNN:
 GPUS: (0,)
 SEED: 24
 
-RECORD_BASE: './record/only_complete_600x1200/kfold_inner_random_oc' #'/home/jd0617/Saved/cls_by_patient/rgb' '/tmp/testestes' # 
+RECORD_BASE: './record/only_complete_600x1200_obj_det/kfold_inner_random_oc' #'/home/jd0617/Saved/cls_by_patient/rgb' '/tmp/testestes' # 
 OUTPUT_DIR: 'hrnet/result'
 
 K_FOLD: 5
@@ -20,10 +20,10 @@ DATASETS:
   DATASET: CompletePatch # CellByPatient
   IMG_DIR: "/workspace/datasets/seg_by_patient/preprocessed/pos_cropped_patch_all_r1_r2"
   ANNO_DIR: "/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/pre_all_complete_merge.json"
-  TRAIN_ANNO_DIR: ''
-  # VAL_ANNO_DIR: ''
-  TEST_ANNO_DIR: ''
-  # BALANCE: True
+  TRAIN_ANNO_DIR: '/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/pre_all_complete_train.json'
+  TEST_ANNO_DIR: '/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/pre_all_complete_test.json'
+  TRAIN: "my_train"
+  TEST: "my_test"
   SHUFFLE: true
   KFOLD_LIST: '' #'/home/jd0617/Datasets_Models/Datasets/seg_by_patient/anno/k5_v3_patient_list.json' 
 
@@ -47,6 +47,7 @@ MODEL:
   NUM_MASKS: 15
   FROM_LOGITS: True
   ALIGN_CORNERS: True
+  ROI_HEADS:
 
   EXTRA:
     PRETRAINED_LAYERS:
@@ -142,6 +143,7 @@ SOLVER:
   MAX_ITER: 480 # (num_samples / batch_size) × num_epochs
 
   LR_SCHEDULER_NAME : "WarmupMultiStepLR"
+  WARMUP_ITERS: 100
   
   MOMENTUM : 0.9
   NESTEROV : False
@@ -151,7 +153,7 @@ SOLVER:
   GAMMA : 0.1
   STEPS : (400, 460)
 
-  CHECKPOINT_PERIOD : 200
+  CHECKPOINT_PERIOD : 20
   REFERENCE_WORLD_SIZE : 1
 
   BIAS_LR_FACTOR : 1.0
