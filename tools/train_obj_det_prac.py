@@ -15,7 +15,7 @@ from detectron2.config import get_cfg
 from detectron2.modeling import build_model
 from detectron2.engine import DefaultTrainer
 from detectron2.evaluation import COCOEvaluator, inference_on_dataset
-from detectron2.data import build_detection_test_loader
+from detectron2.data import DatasetCatalog, build_detection_test_loader
 from detectron2.data.datasets import register_coco_instances
 from detectron2.utils import comm
 
@@ -61,6 +61,28 @@ class MyTrainer(DefaultTrainer):
 
         return model
     
+def register_coco_binary_remap(name, json_file, img_root):
+    from detectron2.data.datasets import load_coco_json
+    
+    def _loader():
+        ds = load_coco_json(json_file, img_root, name)
+        out = []
+        for d in ds:
+            d = d.copy()
+            anns = []
+            for a in d.get('annotations', []):
+                old = int(a["category_id"])
+                if old > 1:
+                    a = a.copy()
+                    a["category_id"] = 1
+                anns.append(a)
+            d["annotations"] = anns
+            out.append(d)
+        return out
+    
+    DatasetCatalog.register(name, _loader)
+
+
 
 def update_cfg_with_args(cfg, arg_key, arg_value):
     cfg.defrost()
@@ -104,8 +126,14 @@ def main():
     console = logging.StreamHandler()
     logging.getLogger('').addHandler(console)
 
-    register_coco_instances(cfg.DATASETS.TRAIN[0], {}, cfg.DATASETS.TRAIN_ANNO_DIR, cfg.DATASETS.IMG_DIR)
-    register_coco_instances(cfg.DATASETS.TEST[0], {}, cfg.DATASETS.TEST_ANNO_DIR, cfg.DATASETS.IMG_DIR)
+    # keep = ["level_0", "level_1", "level_2"]
+
+    # register_coco_instances(cfg.DATASETS.TRAIN[0], {}, cfg.DATASETS.TRAIN_ANNO_DIR, cfg.DATASETS.IMG_DIR)
+    # register_coco_instances(cfg.DATASETS.TEST[0], {}, cfg.DATASETS.TEST_ANNO_DIR, cfg.DATASETS.IMG_DIR)
+
+    register_coco_binary_remap(cfg.DATASETS.TRAIN[0], cfg.DATASETS.TRAIN_ANNO_DIR, cfg.DATASETS.IMG_DIR)
+    register_coco_binary_remap(cfg.DATASETS.TEST[0], cfg.DATASETS.TRAIN_ANNO_DIR, cfg.DATASETS.IMG_DIR)
+
 
     set_seed(cfg.SEED)
 
