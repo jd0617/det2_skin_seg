@@ -10,11 +10,13 @@ import random
 import numpy as np
 
 from collections import defaultdict
+from detectron2 import model_zoo
 from detectron2.config import get_cfg
 from detectron2.modeling import build_model
 from detectron2.engine import DefaultTrainer
 from detectron2.evaluation import COCOEvaluator, inference_on_dataset
 from detectron2.data import build_detection_test_loader
+from detectron2.data.datasets import register_coco_instances
 from detectron2.utils import comm
 
 import _init_paths
@@ -27,7 +29,7 @@ from utils.utils import  create_logger
 
 config_parser = parser = argparse.ArgumentParser(description='Training Config', add_help=False)
 parser.add_argument('-c', '--cfg',
-                    default='/workspace/project/configs/hrnet/w32_ori.yaml',
+                    default='/workspace/project/configs/hrnet/w32_obj_det.yaml',
                     type=str, metavar='FILE',
                     help='YAML config file specifying default arguments')
 parser.add_argument('--ds-root', metavar='DIR', default='',
@@ -37,8 +39,10 @@ parser.add_argument('--record-base', default='', type=str, metavar='PATH',
 parser.add_argument('--output-dir', default='', type=str, metavar='PATH',
                     help='path to output folder (default: none, current dir)')
 
+
 def set_seed(s=42):
-    random.seed(s); np.random.seed(s)
+    random.seed(s)
+    np.random.seed(s)
     torch.manual_seed(s)
     torch.cuda.manual_seed_all(s)
     torch.backends.cudnn.benchmark = False
@@ -66,3 +70,66 @@ def update_cfg_with_args(cfg, arg_key, arg_value):
     cfg.arg_key = arg_value
 
     cfg.freeze()
+
+
+def main():
+    args = parser.parse_args()
+    if not hasattr(comm, "REFERENCE_WORLD_SIZE"):
+        comm.REFERENCE_WORLD_SIZE = comm.get_world_size()
+
+    start_datetime = datetime.now()
+    start_time = time.monotonic()
+    
+    cfg.merge_from_file(model_zoo.get_config_file(
+        "COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml"
+    ))
+
+    update_config(cfg, args)
+    
+    # update_cfg_with_args(cfg, 'OUTPUT_DIR', args.output_dir)
+
+    final_output_dir = Path(os.path.join(cfg.RECORD_BASE, cfg.OUTPUT_DIR))
+    print('=> creating {}'.format(final_output_dir))
+    final_output_dir.mkdir(parents=True, exist_ok=True)
+    
+    time_str = time.strftime('%Y-%m-%d-%H-%M')
+    log_file = '{}_train.log'.format(time_str)
+    final_log_file = final_output_dir / log_file
+    head = '%(asctime)-15s %(message)s'
+    logging.basicConfig(filename=str(final_log_file),
+                        format=head)
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    console = logging.StreamHandler()
+    logging.getLogger('').addHandler(console)
+
+    register_coco_instances(cfg.DATASETS.TRAIN, {}, cfg.DATASETS.TRAIN_ANNO_DIR, cfg.DATASETS.IMG_DIR)
+    register_coco_instances(cfg.DATASETS.TEST, {}, cfg.DATASETS.TEST_ANNO_DIR, cfg.DATASETS.IMG_DIR)
+
+    set_seed(cfg.SEED)
+
+    trainer = MyTrainer(cfg)
+    trainer.resume_or_load(resume=False)
+    trainer.train()
+
+    evaluator = COCOEvaluator(cfg.DATASETS.TEST, output_dir=final_output_dir)
+    test_loader = build_detection_test_loader(cfg, "cfg.DATASETS.TEST")
+    results = inference_on_dataset(trainer.model, test_loader, evaluator)
+
+    print(results)
+
+    end_time = time.monotonic()
+    end_datetime = datetime.now()
+
+    duration = timedelta(seconds=end_time - start_time)
+    logger.info("Experiment start at: {}".format(start_datetime))
+    logger.info("Experiment End Time: {}".format(end_datetime))
+    logger.info("Time taken: {}".format(duration))
+    logger.info("Results available at: {}".format(final_output_dir))
+
+    
+if __name__ == "__main__":
+    main()
+
+
