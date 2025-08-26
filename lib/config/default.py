@@ -112,6 +112,4 @@ def update_config(cfg, args):
 
     cfg.OUTPUT_DIR = os.path.join(cfg.RECORD_BASE, cfg.OUTPUT_DIR)
 
-    
-
     cfg.freeze()

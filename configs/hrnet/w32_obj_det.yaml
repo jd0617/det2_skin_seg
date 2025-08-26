@@ -22,8 +22,8 @@ DATASETS:
   ANNO_DIR: "/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/pre_all_complete_merge.json"
   TRAIN_ANNO_DIR: '/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/pre_all_complete_train.json'
   TEST_ANNO_DIR: '/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/pre_all_complete_test.json'
-  TRAIN: "my_train"
-  TEST: "my_test"
+  TRAIN: ('my_train', )
+  TEST: ('my_test', )
   SHUFFLE: true
   KFOLD_LIST: '' #'/home/jd0617/Datasets_Models/Datasets/seg_by_patient/anno/k5_v3_patient_list.json' 
 
@@ -38,7 +38,7 @@ INPUT:
 
 MODEL:
   INIT_WEIGHTS: true
-  META_ARCHITECTURE: faster_rcnn_R_50_C4_1x
+  # META_ARCHITECTURE: faster_rcnn_R_50_C4_1x
   PRETRAINED: ''
   PRETRAINED_STRICT: False
   MASK_ON: False
@@ -105,14 +105,14 @@ MODEL:
       - 256
       FUSE_METHOD: SUM
 
-LOSS:
-  LOSS: DiceLossWithBCE
-  REDUCTION: mean
-  ALPHA: 0.5
-  BETA: 0.5
-  GAMMA: 2.0
-  SMOOTH: 1e-6
-  DICE_RAT: 1.0
+# LOSS:
+#   LOSS: DiceLossWithBCE
+#   REDUCTION: mean
+#   ALPHA: 0.5
+#   BETA: 0.5
+#   GAMMA: 2.0
+#   SMOOTH: 1e-6
+#   DICE_RAT: 1.0
 
 TRAIN:
   BATCH_SIZE_PER_GPU: 16

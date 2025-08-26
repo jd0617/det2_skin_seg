@@ -104,8 +104,8 @@ def main():
     console = logging.StreamHandler()
     logging.getLogger('').addHandler(console)
 
-    register_coco_instances(cfg.DATASETS.TRAIN, {}, cfg.DATASETS.TRAIN_ANNO_DIR, cfg.DATASETS.IMG_DIR)
-    register_coco_instances(cfg.DATASETS.TEST, {}, cfg.DATASETS.TEST_ANNO_DIR, cfg.DATASETS.IMG_DIR)
+    register_coco_instances(cfg.DATASETS.TRAIN[0], {}, cfg.DATASETS.TRAIN_ANNO_DIR, cfg.DATASETS.IMG_DIR)
+    register_coco_instances(cfg.DATASETS.TEST[0], {}, cfg.DATASETS.TEST_ANNO_DIR, cfg.DATASETS.IMG_DIR)
 
     set_seed(cfg.SEED)
 
