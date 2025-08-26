@@ -141,8 +141,10 @@ def main():
     trainer.resume_or_load(resume=False)
     trainer.train()
 
-    evaluator = COCOEvaluator(cfg.DATASETS.TEST, output_dir=final_output_dir)
-    test_loader = build_detection_test_loader(cfg, "cfg.DATASETS.TEST")
+    logger.info("=====> Testing <=====")
+
+    evaluator = COCOEvaluator(cfg.DATASETS.TEST[0], output_dir=final_output_dir)
+    test_loader = build_detection_test_loader(cfg, cfg.DATASETS.TEST[0])
     results = inference_on_dataset(trainer.model, test_loader, evaluator)
 
     print(results)

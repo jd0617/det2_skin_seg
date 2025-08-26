@@ -143,11 +143,11 @@ DEBUG:
 
 SOLVER:
   IMS_PER_BATCH: 16
-  BASE_LR: 0.20
-  MAX_ITER: 480 # (num_samples / batch_size) × num_epochs
+  BASE_LR: 0.02
+  MAX_ITER: 1373 # (num_samples / batch_size) × num_epochs
 
   LR_SCHEDULER_NAME : "WarmupMultiStepLR"
-  WARMUP_ITERS: 100
+  WARMUP_ITERS: 130
   
   MOMENTUM : 0.9
   NESTEROV : False
@@ -155,9 +155,9 @@ SOLVER:
   WEIGHT_DECAY_NORM : 0.0
 
   GAMMA : 0.1
-  STEPS : (400, 460)
+  STEPS : (829, 1098)
 
-  CHECKPOINT_PERIOD : 20
+  CHECKPOINT_PERIOD : 200
   REFERENCE_WORLD_SIZE : 1
 
   BIAS_LR_FACTOR : 1.0
