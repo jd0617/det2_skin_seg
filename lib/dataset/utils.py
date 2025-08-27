@@ -4,6 +4,7 @@ import logging
 import numpy as np
 
 from pathlib import Path
+from functools import partial
 
 from detectron2.data.datasets import register_coco_instances
 from detectron2.data import DatasetCatalog, MetadataCatalog
@@ -35,10 +36,11 @@ def load_coco(json_file, img_root):
 
     return out
 
+
 def get_patient_id(anno):
     return str(anno["patient_id"])
 
-def register_dataset(name: str, json_file: str, img_root: str): #, coco_style:bool=False
+def register_dataset(name: str, json_file: str, img_root: str, to_bin=False): #, coco_style:bool=False
     if name in DatasetCatalog.list():
         logger.info(f"Found existed {name}, removing existed {name}...")
         DatasetCatalog.remove(name)
@@ -51,6 +53,33 @@ def register_dataset(name: str, json_file: str, img_root: str): #, coco_style:bo
     DatasetCatalog.register(name, lambda: load_coco(json_file, img_root)) # , attach_pid_if_missing=True
     
     logger.info("Done!")
+
+def to_bin(anns):
+    out = []
+    for d in anns:
+        d = d.copy()
+        anns = []
+        for a in d.get('annotations', []):
+            old = int(a["category_id"])
+            if old > 1:
+                a = a.copy()
+                a["category_id"] = 1
+            anns.append(a)
+        d["annotations"] = anns
+        out.append(d)
+    return out
+    
+
+def register_patch_dataset(name: str, json_file: str, img_root: str, to_bin=False, extra_key=["patient_id"]):
+    if name in DatasetCatalog.list():
+        logger.info(f"Found existed {name}, removing existed {name}...")
+        DatasetCatalog.remove(name)
+
+    if len(extra_key) > 0:
+        load_coco_json = partial(extra_annotation_keys=extra_key)
+
+    if 
+
 
 ### K-Fold related functions
 
@@ -100,3 +129,10 @@ def get_groups_subset(records, indices):
 
     subset = [records[i] for i in indices if i[""]]
     
+def register_split_coco(name, base_records, indices, to_binary=False, cus_key:list=[]):
+
+    def _to_bin():
+        ds = load_coco_json(json_file, img_root, name)
+        output = []
+        for d in 
+
