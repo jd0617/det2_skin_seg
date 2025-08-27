@@ -21,6 +21,7 @@ from detectron2.utils import comm
 
 import _init_paths
 from dataset.utils import register_dataset, get_records, get_groups_from_records, group_kfold_indices, register_split
+from dataset.utils import register_patch_bin_dataset
 from models import get_model
 from config import cfg, update_config
 from core import DiceScoreEvaluator
@@ -125,7 +126,7 @@ def update_cfg_with_args(cfg, arg_key, arg_value):
     cfg.freeze()
 
 def run_nested_cv(logger, base_ds_name, cfg, output_dir, k_outer=5, k_inner=3, seed=24):
-    records = get_records(base_ds_name)
+    records = DatasetCatalog.get(base_ds_name)
     groups = get_groups_from_records(records)
     idx_all = np.arange(len(records))
 
@@ -146,4 +147,79 @@ def run_nested_cv(logger, base_ds_name, cfg, output_dir, k_outer=5, k_inner=3, s
 
         logger.info(f"Running outer fold {o_fold}")
 
-        
+        ofold_cfg = build_cfg(cfg, f"o{o_fold}_tr", test_name, ofold_output_dir)
+
+        inner_split = group_kfold_indices(groups[outer_tr_idx], n_splits=k_inner)
+
+        for i_fold, (inner_tr_rel, inner_va_rel) in enumerate(inner_split):
+            
+            ifold_prefix = f"ifold_{i_fold}"
+            ifold_output_dir = Path(ofold_output_dir) / ifold_prefix
+            ifold_output_dir.mkdir(parents=True, exist_ok=True)
+
+            inner_tr_idx = outer_tr_idx[inner_tr_rel]
+            inner_va_idx = outer_tr_idx[inner_va_rel]
+
+            inner_tr_name = f"o{o_fold}_inner_tr_{i_fold}"
+            inner_va_name = f"o{o_fold}_inner_va_{i_fold}"
+
+            register_split(inner_tr_name, records, inner_tr_idx)
+            register_split(inner_va_name, records, inner_va_idx)
+
+            ifold_cfg = build_cfg(cfg, inner_tr_name, inner_va_name, ifold_output_dir, len(inner_tr_rel))
+
+            logger.info(f"====> Running inner fold {o_fold}-{i_fold}")
+
+            trainer = MyTrainer(ifold_cfg)
+            trainer.resume_or_load(False)
+            trainer.train()
+
+            evaluator = COCOEvaluator(inner_va_name, output_dir=ifold_output_dir)
+            val_loader = build_detection_test_loader(ifold_cfg, inner_va_name)
+            results = inference_on_dataset(trainer.model, val_loader, evaluator)
+
+            ap = 
+
+
+
+def main():
+    args = parser.parse_args()
+    if not hasattr(comm, "REFERENCE_WORLD_SIZE"):
+        comm.REFERENCE_WORLD_SIZE = comm.get_world_size()
+
+    start_datetime = datetime.now()
+    start_time = time.monotonic()
+
+    cfg.merge_from_file(model_zoo.get_config_file(
+        "COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml"
+    ))
+
+    logger, final_output_dir, tb_log_dir = create_logger(
+        cfg, args.cfg, 'train')
+
+    update_config(cfg, args)
+
+    DATASET_NAME = "all_ds"
+
+    register_patch_bin_dataset(
+        DATASET_NAME,
+        json_file=cfg.DATASET.JSON_FILE,
+        img_root=cfg.DATASET.IMG_ROOT,
+        extra_key=["patient_id"]
+    )
+
+    run_nested_cv(logger, base_ds_name=DATASET_NAME, cfg=cfg, output_dir=cfg.OUTPUT_DIR,
+                  k_outer=cfg.K_FOLD, k_inner=cfg.VAL_K_FOLD, seed=cfg.SEED)
+
+    end_time = time.monotonic()
+    end_datetime = datetime.now()
+
+    duration = timedelta(seconds=end_time - start_time)
+    logger.info("Experiment start at: {}".format(start_datetime))
+    logger.info("Experiment End Time: {}".format(end_datetime))
+    logger.info("Time taken: {}".format(duration))
+    logger.info("Results available at: {}".format(final_output_dir))
+
+
+if __name__ == "__main__":
+    main()

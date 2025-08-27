@@ -54,9 +54,9 @@ def register_dataset(name: str, json_file: str, img_root: str, to_bin=False): #,
     
     logger.info("Done!")
 
-def to_bin(anns):
+def to_bin(ds):
     out = []
-    for d in anns:
+    for d in ds:
         d = d.copy()
         anns = []
         for a in d.get('annotations', []):
@@ -68,9 +68,9 @@ def to_bin(anns):
         d["annotations"] = anns
         out.append(d)
     return out
-    
 
-def register_patch_dataset(name: str, json_file: str, img_root: str, to_bin=False, extra_key=["patient_id"]):
+
+def register_patch_bin_dataset(name: str, json_file: str, img_root: str, extra_key=["patient_id"]):
     if name in DatasetCatalog.list():
         logger.info(f"Found existed {name}, removing existed {name}...")
         DatasetCatalog.remove(name)
@@ -78,7 +78,12 @@ def register_patch_dataset(name: str, json_file: str, img_root: str, to_bin=Fals
     if len(extra_key) > 0:
         load_coco_json = partial(extra_annotation_keys=extra_key)
 
-    if 
+    def _loader():
+        ds = load_coco_json(json_file, img_root, name, extra_annotation_keys=extra_key)
+        out = to_bin(ds)
+    
+    logger.info(f"Registering {name}...")
+    DatasetCatalog.register(name, _loader)
 
 
 ### K-Fold related functions
@@ -125,14 +130,4 @@ def register_split(name, base_records, indices):
 
     DatasetCatalog.register(name, lambda s=subset: deepcopy(s))
 
-def get_groups_subset(records, indices):
-
-    subset = [records[i] for i in indices if i[""]]
-    
-def register_split_coco(name, base_records, indices, to_binary=False, cus_key:list=[]):
-
-    def _to_bin():
-        ds = load_coco_json(json_file, img_root, name)
-        output = []
-        for d in 
 
