@@ -22,9 +22,7 @@ from detectron2.utils import comm
 import _init_paths
 from dataset.utils import register_dataset, get_records, get_groups_from_records, group_kfold_indices, register_split
 from dataset.utils import register_patch_bin_dataset
-from models import get_model
 from config import cfg, update_config
-from core import DiceScoreEvaluator
 from utils.utils import  create_logger
 
 
@@ -151,7 +149,7 @@ def run_nested_cv(logger, base_ds_name, cfg, output_dir, k_outer=5, k_inner=3, s
 
             trainer = MyTrainer(ifold_cfg)
             trainer.resume_or_load(False)
-            trainer.train()
+            # trainer.train()
 
             evaluator = COCOEvaluator(inner_va_name, output_dir=ifold_output_dir)
             val_loader = build_detection_test_loader(ifold_cfg, inner_va_name)

@@ -143,7 +143,7 @@ DEBUG:
 
 SOLVER:
   IMS_PER_BATCH: 16
-  BASE_LR: 0.02
+  BASE_LR: 0.01
   MAX_ITER: 1373 # (num_samples / batch_size) × num_epochs
 
   LR_SCHEDULER_NAME : "WarmupMultiStepLR"

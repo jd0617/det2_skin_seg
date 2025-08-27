@@ -21,9 +21,7 @@ from detectron2.utils import comm
 
 import _init_paths
 from dataset.utils import register_dataset, get_records, get_groups_from_records, group_kfold_indices, register_split
-from models import get_model
 from config import cfg, update_config
-from core import DiceScoreEvaluator
 from utils.utils import  create_logger
 
 

@@ -18,8 +18,8 @@ from copy import deepcopy
 logger = logging.getLogger(__name__)
 
 
-def load_coco(json_file, img_root):
-    ds_dicts = load_coco_json(json_file, img_root) # detectron2 style
+def load_coco(json_file, img_root, name):
+    ds_dicts = load_coco_json(json_file, img_root, name) # detectron2 style
 
     coco = COCO(json_file) # pycocotools style
 
@@ -82,7 +82,7 @@ def register_patch_bin_dataset(name: str, json_file: str, img_root: str, extra_k
 
     def _loader():
         # ds = load_coco_fn(json_file, img_root, name, extra_annotation_keys=extra_key)
-        ds = load_coco(json_file, img_root)
+        ds = load_coco(json_file, img_root, name)
         out = to_bin(ds)
         return out
     
