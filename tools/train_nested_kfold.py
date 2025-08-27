@@ -167,6 +167,8 @@ def run_nested_cv(logger, base_ds_name: str, cfg, output_dir, k_outer:int=5, k_i
 
         outer_results.append(test_res)
 
+    return outer_results
+
     
 def main():
     args = parser.parse_args()
@@ -186,7 +188,7 @@ def main():
 
     register_dataset(DATASET_NAME, cfg.DATASETS.ANNO_DIR, cfg.DATASETS.IMG_DIR)
 
-    run_nested_cv(logger, base_ds_name=DATASET_NAME, cfg=cfg, output_dir=cfg.OUTPUT_DIR,
+    ncv_result = run_nested_cv(logger, base_ds_name=DATASET_NAME, cfg=cfg, output_dir=cfg.OUTPUT_DIR,
                   k_outer=cfg.K_FOLD, k_inner=cfg.VAL_K_FOLD, seed=cfg.SEED)
     
     end_time = time.monotonic()

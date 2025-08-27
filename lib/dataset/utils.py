@@ -76,10 +76,12 @@ def register_patch_bin_dataset(name: str, json_file: str, img_root: str, extra_k
         DatasetCatalog.remove(name)
 
     if len(extra_key) > 0:
-        load_coco_json = partial(extra_annotation_keys=extra_key)
+        load_coco_fn = partial(load_coco_json, extra_annotation_keys=extra_key)
+    else:
+        load_coco_fn = load_coco_json
 
     def _loader():
-        ds = load_coco_json(json_file, img_root, name, extra_annotation_keys=extra_key)
+        ds = load_coco_fn(json_file, img_root, name, extra_annotation_keys=extra_key)
         out = to_bin(ds)
     
     logger.info(f"Registering {name}...")

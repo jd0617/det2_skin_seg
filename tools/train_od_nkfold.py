@@ -62,27 +62,6 @@ class MyTrainer(DefaultTrainer):
 
         return model
     
-def register_coco_binary_remap(name, json_file, img_root):
-    from detectron2.data.datasets import load_coco_json
-    
-    def _loader():
-        ds = load_coco_json(json_file, img_root, name)
-        out = []
-        for d in ds:
-            d = d.copy()
-            anns = []
-            for a in d.get('annotations', []):
-                old = int(a["category_id"])
-                if old > 1:
-                    a = a.copy()
-                    a["category_id"] = 1
-                anns.append(a)
-            d["annotations"] = anns
-            out.append(d)
-        return out
-    
-    DatasetCatalog.register(name, _loader)
-
 def build_cfg(cfg_file, train_name, test_name, output_dir, num_samples=0):
 
     # cfg = cfg.clone()
@@ -178,8 +157,25 @@ def run_nested_cv(logger, base_ds_name, cfg, output_dir, k_outer=5, k_inner=3, s
             val_loader = build_detection_test_loader(ifold_cfg, inner_va_name)
             results = inference_on_dataset(trainer.model, val_loader, evaluator)
 
-            ap = 
+            ap = results['bbox']['AP']
 
+            if ap > best_score:
+                best_score = ap
+                best_model_path = os.path.join(ifold_output_dir, "model_final.pth")
+
+        logger.info(f"Testing outer fold {o_fold}")
+
+        register_split(test_name, records, outer_te_idx)
+
+        ofold_cfg = build_cfg(cfg, f"o{o_fold}_tr", test_name, ofold_output_dir)
+        ofold_cfg.MODEL.WEIGHTS = best_model_path
+        trainer = MyTrainer(ofold_cfg)
+        test_loader = build_detection_test_loader(cfg, test_name)
+        results = inference_on_dataset(trainer.model, test_loader, evaluator)
+
+        outer_results.append(test_res)
+
+    return outer_results
 
 
 def main():
@@ -203,12 +199,12 @@ def main():
 
     register_patch_bin_dataset(
         DATASET_NAME,
-        json_file=cfg.DATASET.JSON_FILE,
-        img_root=cfg.DATASET.IMG_ROOT,
+        json_file=cfg.DATASETS.ANNO_DIR,
+        img_root=cfg.DATASETS.IMG_DIR,
         extra_key=["patient_id"]
     )
 
-    run_nested_cv(logger, base_ds_name=DATASET_NAME, cfg=cfg, output_dir=cfg.OUTPUT_DIR,
+    ncv_result = run_nested_cv(logger, base_ds_name=DATASET_NAME, cfg=cfg, output_dir=cfg.OUTPUT_DIR,
                   k_outer=cfg.K_FOLD, k_inner=cfg.VAL_K_FOLD, seed=cfg.SEED)
 
     end_time = time.monotonic()

@@ -139,7 +139,7 @@ def main():
 
     trainer = MyTrainer(cfg)
     trainer.resume_or_load(resume=False)
-    trainer.train()
+    # trainer.train()
 
     logger.info("=====> Testing <=====")
 
