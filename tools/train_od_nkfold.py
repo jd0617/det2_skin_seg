@@ -143,7 +143,7 @@ def run_nested_cv(logger, base_ds_name, cfg, output_dir, k_outer=5, k_inner=3, s
             register_split(inner_tr_name, records, inner_tr_idx, base_name_with_classes=base_ds_name)
             register_split(inner_va_name, records, inner_va_idx, base_name_with_classes=base_ds_name)
 
-            ifold_cfg = build_cfg(cfg, inner_tr_name, inner_va_name, ifold_output_dir, len(inner_tr_rel))
+            ifold_cfg = build_cfg(cfg, inner_tr_name, (inner_va_name, ), ifold_output_dir, len(inner_tr_rel))
 
             logger.info(f"====> Running inner fold {o_fold}-{i_fold}")
 
