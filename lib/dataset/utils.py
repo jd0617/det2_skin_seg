@@ -127,11 +127,20 @@ def group_kfold_indices(groups, n_splits=5, rng_seed=42):
     for tr, te in gkf.split(np.zeros_like(order_idx), groups=groups):
         yield tr, te
 
-def register_split(name, base_records, indices):
+def register_split(name, base_records, indices, base_name_with_classes=None, classes=None):
     subset = [base_records[i] for i in indices]
     if name in DatasetCatalog.list():
         DatasetCatalog.remove(name)
 
     DatasetCatalog.register(name, lambda s=subset: deepcopy(s))
+
+    meta = MetadataCatalog.get(name)
+    if classes is None and base_name_with_classes is not None:
+        classes = list(MetadataCatalog.get(base_name_with_classes).thing_classes)
+    if classes is None:
+        # fallback if you really have nothing else
+        labels = sorted({a["category_id"] for d in subset for a in d.get("annotations", [])})
+        classes = [f"class_{i}" for i in range((labels[-1] + 1) if labels else 0)]
+    meta.set(thing_classes=classes, evaluator_type="coco")
 
 

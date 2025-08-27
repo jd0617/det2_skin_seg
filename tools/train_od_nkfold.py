@@ -140,8 +140,8 @@ def run_nested_cv(logger, base_ds_name, cfg, output_dir, k_outer=5, k_inner=3, s
             inner_tr_name = f"o{o_fold}_inner_tr_{i_fold}"
             inner_va_name = f"o{o_fold}_inner_va_{i_fold}"
 
-            register_split(inner_tr_name, records, inner_tr_idx)
-            register_split(inner_va_name, records, inner_va_idx)
+            register_split(inner_tr_name, records, inner_tr_idx, base_name_with_classes=base_ds_name)
+            register_split(inner_va_name, records, inner_va_idx, base_name_with_classes=base_ds_name)
 
             ifold_cfg = build_cfg(cfg, inner_tr_name, inner_va_name, ifold_output_dir, len(inner_tr_rel))
 
@@ -149,7 +149,7 @@ def run_nested_cv(logger, base_ds_name, cfg, output_dir, k_outer=5, k_inner=3, s
 
             trainer = MyTrainer(ifold_cfg)
             trainer.resume_or_load(False)
-            # trainer.train()
+            trainer.train()
 
             evaluator = COCOEvaluator(inner_va_name, output_dir=ifold_output_dir)
             val_loader = build_detection_test_loader(ifold_cfg, inner_va_name)
@@ -163,7 +163,7 @@ def run_nested_cv(logger, base_ds_name, cfg, output_dir, k_outer=5, k_inner=3, s
 
         logger.info(f"Testing outer fold {o_fold}")
 
-        register_split(test_name, records, outer_te_idx)
+        register_split(test_name, records, outer_te_idx, base_name_with_classes=base_ds_name)
 
         ofold_cfg = build_cfg(cfg, f"o{o_fold}_tr", test_name, ofold_output_dir)
         ofold_cfg.MODEL.WEIGHTS = best_model_path
@@ -193,16 +193,16 @@ def main():
 
     update_config(cfg, args)
 
-    DATASET_NAME = "all_ds"
+    # DATASET_NAME = "all_ds"
 
     register_patch_bin_dataset(
-        DATASET_NAME,
+        cfg.DATASETS.DATASET,
         json_file=cfg.DATASETS.ANNO_DIR,
         img_root=cfg.DATASETS.IMG_DIR,
         extra_key=["patient_id"]
     )
 
-    ncv_result = run_nested_cv(logger, base_ds_name=DATASET_NAME, cfg=cfg, output_dir=cfg.OUTPUT_DIR,
+    ncv_result = run_nested_cv(logger, base_ds_name=cfg.DATASETS.DATASET, cfg=cfg, output_dir=cfg.OUTPUT_DIR,
                   k_outer=cfg.K_FOLD, k_inner=cfg.VAL_K_FOLD, seed=cfg.SEED)
 
     end_time = time.monotonic()
