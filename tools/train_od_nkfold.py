@@ -13,6 +13,7 @@ from collections import defaultdict
 from detectron2 import model_zoo
 from detectron2.config import get_cfg
 from detectron2.modeling import build_model
+from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.engine import DefaultTrainer
 from detectron2.evaluation import COCOEvaluator, inference_on_dataset
 from detectron2.data import DatasetCatalog, build_detection_test_loader
@@ -81,9 +82,10 @@ def build_cfg(cfg_file, train_name, test_name, output_dir, num_samples=0):
     total_steps = (num_samples // batch_size) * epochs
 
     cfg.DATASETS.TRAIN = train_name
-    cfg.DATASETS.TEST = test_name
+    cfg.DATASETS.TEST = (test_name, )
     cfg.OUTPUT_DIR = output_dir
-    cfg.SOLVER.max_iter = total_steps
+    cfg.SOLVER.MAX_ITER = total_steps
+    cfg.SOLVER.STEPS = (int(total_steps*0.8), int(total_steps*0.95))
 
     cfg.freeze()
 
@@ -107,7 +109,7 @@ def run_nested_cv(logger, base_ds_name, cfg, output_dir, k_outer=5, k_inner=3, s
     groups = get_groups_from_records(records)
     idx_all = np.arange(len(records))
 
-    outer_results = []
+    outer_results = {}
 
     outer_split = group_kfold_indices(groups, n_splits=k_outer)
 
@@ -143,9 +145,10 @@ def run_nested_cv(logger, base_ds_name, cfg, output_dir, k_outer=5, k_inner=3, s
             register_split(inner_tr_name, records, inner_tr_idx, base_name_with_classes=base_ds_name)
             register_split(inner_va_name, records, inner_va_idx, base_name_with_classes=base_ds_name)
 
-            ifold_cfg = build_cfg(cfg, inner_tr_name, (inner_va_name, ), ifold_output_dir, len(inner_tr_rel))
+            ifold_cfg = build_cfg(cfg, inner_tr_name, inner_va_name, ifold_output_dir, len(inner_tr_rel))
 
             logger.info(f"====> Running inner fold {o_fold}-{i_fold}")
+            logger.info(f"===> Training steps: {ifold_cfg.SOLVER.MAX_ITER}")
 
             trainer = MyTrainer(ifold_cfg)
             trainer.resume_or_load(False)
@@ -165,13 +168,18 @@ def run_nested_cv(logger, base_ds_name, cfg, output_dir, k_outer=5, k_inner=3, s
 
         register_split(test_name, records, outer_te_idx, base_name_with_classes=base_ds_name)
 
-        ofold_cfg = build_cfg(cfg, f"o{o_fold}_tr", test_name, ofold_output_dir)
-        ofold_cfg.MODEL.WEIGHTS = best_model_path
-        trainer = MyTrainer(ofold_cfg)
+        ofold_cfg = build_cfg(cfg, "", test_name, ofold_output_dir)
+        update_cfg_with_args(ofold_cfg, 'MODEL.WEIGHTS', best_model_path)
+        # ofold_cfg.MODEL.WEIGHTS = best_model_path
+        model = build_model(ofold_cfg)
+        DetectionCheckpointer(model).load(cfg.MODEL.WEIGHTS)
+        model.eval()
+        
+        test_evaluator = COCOEvaluator(test_name, output_dir=ofold_output_dir)
         test_loader = build_detection_test_loader(cfg, test_name)
-        results = inference_on_dataset(trainer.model, test_loader, evaluator)
+        test_results = inference_on_dataset(model, test_loader, test_evaluator)
 
-        outer_results.append(test_res)
+        outer_results[o_fold] = test_results
 
     return outer_results
 
@@ -204,6 +212,12 @@ def main():
 
     ncv_result = run_nested_cv(logger, base_ds_name=cfg.DATASETS.DATASET, cfg=cfg, output_dir=cfg.OUTPUT_DIR,
                   k_outer=cfg.K_FOLD, k_inner=cfg.VAL_K_FOLD, seed=cfg.SEED)
+    
+    for k, v in ncv_result.items():
+        logger.info(f"Config: {k}")
+        logger.info(f"Result: {v}")
+        spacer = '-' * 100
+        logger.info(spacer)
 
     end_time = time.monotonic()
     end_datetime = datetime.now()
