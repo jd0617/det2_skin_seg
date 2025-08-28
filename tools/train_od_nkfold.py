@@ -15,7 +15,7 @@ from detectron2.config import get_cfg
 from detectron2.modeling import build_model
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.engine import DefaultTrainer
-from detectron2.evaluation import COCOEvaluator, inference_on_dataset
+from detectron2.evaluation import COCOEvaluator, inference_on_dataset, DatasetEvaluators
 from detectron2.data import DatasetCatalog, build_detection_test_loader
 from detectron2.data.datasets import register_coco_instances
 from detectron2.utils import comm
@@ -24,6 +24,7 @@ import _init_paths
 from dataset.utils import register_dataset, get_records, get_groups_from_records, group_kfold_indices, register_split
 from dataset.utils import register_patch_bin_dataset
 from config import cfg, update_config
+from core import VisualizeEval
 from utils.utils import  create_logger
 
 
@@ -61,6 +62,14 @@ class MyTrainer(DefaultTrainer):
 
         return model
     
+    # @classmethod
+    # def build_evaluator(cls, cfg, dataset_name, output_folder=None):
+    #     evaluators = []
+    #     evaluators.append(COCOEvaluator(dataset_name, output_dir=output_folder or cfg.OUTPUT_DIR))
+    #     evaluators.append(VisualizeEval(dataset_name, output_dir=cfg.OUTPUT_DIR,
+    #                                          max_images=100, score_thresh=0.05, topk=300))
+    #     return DatasetEvaluators(evaluators)
+    
 def build_cfg(cfg_file, train_name, test_name, output_dir, num_samples=0):
 
     # cfg = cfg.clone()
@@ -86,6 +95,7 @@ def build_cfg(cfg_file, train_name, test_name, output_dir, num_samples=0):
     cfg.OUTPUT_DIR = output_dir
     cfg.SOLVER.MAX_ITER = total_steps
     cfg.SOLVER.STEPS = (int(total_steps*0.8), int(total_steps*0.95))
+    cfg.TEST_EVAL_PERIOD = total_steps // epochs
 
     cfg.freeze()
 
@@ -154,7 +164,11 @@ def run_nested_cv(logger, base_ds_name, cfg, output_dir, k_outer=5, k_inner=3, s
             trainer.resume_or_load(False)
             trainer.train()
 
-            evaluator = COCOEvaluator(inner_va_name, output_dir=ifold_output_dir)
+            evaluator = DatasetEvaluators([
+                COCOEvaluator(inner_va_name, output_dir=ifold_output_dir),
+                VisualizeEval(inner_va_name, output_dir=ifold_output_dir,
+                              max_images=100, score_thresh=0.05, topk=300)
+            ])
             val_loader = build_detection_test_loader(ifold_cfg, inner_va_name)
             results = inference_on_dataset(trainer.model, val_loader, evaluator)
 
@@ -175,7 +189,11 @@ def run_nested_cv(logger, base_ds_name, cfg, output_dir, k_outer=5, k_inner=3, s
         DetectionCheckpointer(model).load(cfg.MODEL.WEIGHTS)
         model.eval()
         
-        test_evaluator = COCOEvaluator(test_name, output_dir=ofold_output_dir)
+        test_evaluator = DatasetEvaluators([
+            COCOEvaluator(test_name, output_dir=ofold_output_dir),
+            VisualizeEval(test_name, output_dir=ofold_output_dir,
+                            max_images=100, score_thresh=0.05, topk=300)
+        ])
         test_loader = build_detection_test_loader(cfg, test_name)
         test_results = inference_on_dataset(model, test_loader, test_evaluator)
 

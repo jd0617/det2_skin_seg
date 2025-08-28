@@ -1,2 +1,2 @@
 from .loss import get_loss_fn
-from .evaluators import DiceScoreEvaluator
+from .evaluators import DiceScoreEvaluator, VisualizeEval

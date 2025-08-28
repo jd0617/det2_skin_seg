@@ -1,9 +1,16 @@
 from detectron2.evaluation import DatasetEvaluator
+from detectron2.data import MetadataCatalog
+from detectron2.utils.visualizer import Visualizer, ColorMode
 
 import logging
 import torch
 import torch.nn.functional as nnf
 import torchvision.transforms as T
+
+import cv2
+import os
+import numpy as np
+from functools import partial
 
 from tqdm import tqdm
 
@@ -66,6 +73,58 @@ class DiceScoreEvaluator(DatasetEvaluator):
         if len(self.results) == 0:
             return {"dice_score": float("nan")}
         return {"dice_score": sum(self.results) / len(self.results)}
+    
+
+class VisualizeEval(DatasetEvaluator):
+    def __init__(self, dataset_name, output_dir, max_images=50, score_thresh=None, topk=200):
+        self.dataset_name = dataset_name
+        self.output_dir   = os.path.join(output_dir, f"val_vis_{dataset_name}")
+        os.makedirs(self.output_dir, exist_ok=True)
+        self.max_images   = max_images
+        self.score_thresh = score_thresh
+        self.topk         = topk
+        self.meta         = MetadataCatalog.get(dataset_name)
+        self._count       = 0
+
+    def reset(self):
+        self._count = 0
+
+    def process(self, inputs, outputs):
+        # inputs: list of dicts; outputs: list of dicts with "instances"
+        for inp, out in zip(inputs, outputs):
+            if self._count >= self.max_images:
+                continue
+            inst = out.get("instances", None)
+            if inst is None:
+                continue
+            inst = inst.to("cpu")
+
+            # optional filtering
+            if self.score_thresh is not None and hasattr(inst, "scores"):
+                keep = inst.scores >= float(self.score_thresh)
+                inst = inst[keep]
+            if self.topk and len(inst) > self.topk:
+                inst = inst[: self.topk]
+
+            # get the (transformed) image without re-reading from disk
+            if "image" in inp:
+                img = inp["image"].permute(1, 2, 0).numpy()  # HWC, BGR, float32 0..255
+                img = np.clip(img, 0, 255).astype(np.uint8)
+            else:
+                img = cv2.imread(inp["file_name"])  # fallback
+
+            vis = Visualizer(
+                img[:, :, ::-1], metadata=self.meta, scale=1.0, instance_mode=ColorMode.IMAGE
+            )
+            drawn = vis.draw_instance_predictions(inst).get_image()[:, :, ::-1]
+            # name file by image_id if available
+            stem = str(inp.get("image_id", os.path.basename(inp["file_name"])))
+            cv2.imwrite(os.path.join(self.output_dir, f"{stem}.jpg"), drawn)
+            self._count += 1
+
+    def evaluate(self):
+        # nothing to aggregate; just a side effect
+        return {}
 
     # def vis_batch(self, inputs, outputs, save_path):
 

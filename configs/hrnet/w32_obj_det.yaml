@@ -118,8 +118,6 @@ MODEL:
 
 TRAIN:
   BATCH_SIZE_PER_GPU: 16
-  BEGIN_EPOCH: 0
-  END_EPOCH: 120
   OPTIMIZER: adam
   LR: 0.002 # 0.002 for normal, 0.0002 for smaller dataset
   LR_FACTOR: 0.1
@@ -135,6 +133,7 @@ TRAIN:
 TEST:
   BATCH_SIZE_PER_GPU: 16
   TEST_MODEL_FILE: ''
+  EVAL_PERIOD: 0 # MAX_ITER // num_epochs
 
 DEBUG:
   DEBUG: true
@@ -145,24 +144,19 @@ SOLVER:
   IMS_PER_BATCH: 16
   BASE_LR: 0.01
   MAX_ITER: 1373 # (num_samples / batch_size) × num_epochs
-
+  EPOCHS: 50
   LR_SCHEDULER_NAME : "WarmupMultiStepLR"
   WARMUP_ITERS: 130
-  
   MOMENTUM : 0.9
   NESTEROV : False
   WEIGHT_DECAY : 0.0001
   WEIGHT_DECAY_NORM : 0.0
-
   GAMMA : 0.1
   STEPS : (829, 1098)
-
   CHECKPOINT_PERIOD : 200
   REFERENCE_WORLD_SIZE : 1
-
   BIAS_LR_FACTOR : 1.0
   WEIGHT_DECAY_BIAS : None  # None means following WEIGHT_DECAY
-
   CLIP_GRADIENTS:
     ENABLED: True
     CLIP_TYPE : "value"
