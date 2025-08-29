@@ -7,7 +7,7 @@ GPUS: (0,)
 SEED: 24
 
 RECORD_BASE: './record/only_complete_600x1200_obj_det/kfold_inner_random_oc' #'/home/jd0617/Saved/cls_by_patient/rgb' '/tmp/testestes' # 
-OUTPUT_DIR: 'hrnet/result'
+OUTPUT_DIR: 'result_single/frcnn' #retinanet
 
 K_FOLD: 5
 VAL_K_FOLD: 3
@@ -30,6 +30,8 @@ DATASETS:
 INPUT:
   MIN_SIZE_TRAIN: (600, )
   MAX_SIZE_TRAIN: 1200
+  MIN_SIZE_TEST: 600
+  MAX_SIZE_TEST: 1200
   RANDOM_FLIP: 'none'
   CROP:
     ENABLED: False
@@ -163,4 +165,4 @@ SOLVER:
     CLIP_VALUE : 1.0
     NORM_TYPE : 2.0
   AMP: 
-    ENABLED: True
+    ENABLED: False

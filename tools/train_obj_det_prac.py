@@ -14,13 +14,15 @@ from detectron2 import model_zoo
 from detectron2.config import get_cfg
 from detectron2.modeling import build_model
 from detectron2.engine import DefaultTrainer
-from detectron2.evaluation import COCOEvaluator, inference_on_dataset
+from detectron2.evaluation import COCOEvaluator, inference_on_dataset, DatasetEvaluators
 from detectron2.data import DatasetCatalog, build_detection_test_loader
 from detectron2.data.datasets import register_coco_instances
 from detectron2.utils import comm
 
 import _init_paths
 from dataset.utils import register_dataset, get_records, get_groups_from_records, group_kfold_indices, register_split
+from dataset.utils import register_patch_bin_dataset
+from core import VisualizeEval
 from config import cfg, update_config
 from utils.utils import  create_logger
 
@@ -101,7 +103,9 @@ def main():
     start_time = time.monotonic()
     
     cfg.merge_from_file(model_zoo.get_config_file(
-        "COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml"
+        # "COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml"
+        'COCO-Detection/retinanet_R_50_FPN_1x.yaml'
+
     ))
 
     update_config(cfg, args)
@@ -129,21 +133,38 @@ def main():
     # register_coco_instances(cfg.DATASETS.TRAIN[0], {}, cfg.DATASETS.TRAIN_ANNO_DIR, cfg.DATASETS.IMG_DIR)
     # register_coco_instances(cfg.DATASETS.TEST[0], {}, cfg.DATASETS.TEST_ANNO_DIR, cfg.DATASETS.IMG_DIR)
 
-    register_coco_binary_remap(cfg.DATASETS.TRAIN[0], cfg.DATASETS.TRAIN_ANNO_DIR, cfg.DATASETS.IMG_DIR)
-    register_coco_binary_remap(cfg.DATASETS.TEST[0], cfg.DATASETS.TRAIN_ANNO_DIR, cfg.DATASETS.IMG_DIR)
+    # register_coco_binary_remap(cfg.DATASETS.TRAIN[0], cfg.DATASETS.TRAIN_ANNO_DIR, cfg.DATASETS.IMG_DIR)
+    # register_coco_binary_remap(cfg.DATASETS.TEST[0], cfg.DATASETS.TRAIN_ANNO_DIR, cfg.DATASETS.IMG_DIR)
 
+    register_patch_bin_dataset(
+        cfg.DATASETS.TRAIN[0],
+        json_file=cfg.DATASETS.TRAIN_ANNO_DIR,
+        img_root=cfg.DATASETS.IMG_DIR,
+        extra_key=["patient_id"]
+    )
+
+    register_patch_bin_dataset(
+        cfg.DATASETS.TEST[0],
+        json_file=cfg.DATASETS.TEST_ANNO_DIR,
+        img_root=cfg.DATASETS.IMG_DIR,
+        extra_key=["patient_id"]
+    )
 
     set_seed(cfg.SEED)
 
     trainer = MyTrainer(cfg)
     trainer.resume_or_load(resume=False)
-    # trainer.train()
+    trainer.train()
 
     logger.info("=====> Testing <=====")
 
-    evaluator = COCOEvaluator(cfg.DATASETS.TEST[0], output_dir=final_output_dir)
+    evaluator = DatasetEvaluators([
+                COCOEvaluator(cfg.DATASETS.TEST[0], output_dir=final_output_dir),
+                VisualizeEval(cfg.DATASETS.TEST[0], output_dir=final_output_dir,
+                              max_images=100, score_thresh=0.05, topk=300)
+            ])
     test_loader = build_detection_test_loader(cfg, cfg.DATASETS.TEST[0])
-    results = inference_on_dataset(trainer.model, test_loader, evaluator)
+    results = inference_on_dataset(trainer.model, test_loader, evaluator) 
 
     print(results)
 

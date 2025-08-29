@@ -93,8 +93,10 @@ def build_cfg(cfg_file, train_name, test_name, output_dir, num_samples=0):
     cfg.DATASETS.TRAIN = train_name
     cfg.DATASETS.TEST = (test_name, )
     cfg.OUTPUT_DIR = output_dir
+
     cfg.SOLVER.MAX_ITER = total_steps
     cfg.SOLVER.STEPS = (int(total_steps*0.8), int(total_steps*0.95))
+    cfg.SOLVER.WARMUP_ITERS = int(0.1 * total_steps)
     cfg.TEST_EVAL_PERIOD = total_steps // epochs
 
     cfg.freeze()
@@ -102,6 +104,8 @@ def build_cfg(cfg_file, train_name, test_name, output_dir, num_samples=0):
     print(f"Batch size: {batch_size}")
     print(f"Epochs: {epochs}")
     print(f"Total training steps: {total_steps}")
+    print(f"Warmup steps: {cfg.SOLVER.WARMUP_ITERS}")
+
 
     return cfg
 
@@ -212,6 +216,8 @@ def main():
 
     cfg.merge_from_file(model_zoo.get_config_file(
         "COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml"
+
+        # 'COCO-Detection/retinanet_R_50_FPN_1x.yaml'
     ))
 
     logger, final_output_dir, tb_log_dir = create_logger(
