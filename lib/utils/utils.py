@@ -21,6 +21,8 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 
+from detectron2.utils.logger import setup_logger
+
 
 def create_logger(cfg, cfg_path, phase='train', create_log_dir=True):
 

@@ -18,6 +18,8 @@ from detectron2.evaluation import COCOEvaluator, inference_on_dataset, DatasetEv
 from detectron2.data import DatasetCatalog, build_detection_test_loader
 from detectron2.data.datasets import register_coco_instances
 from detectron2.utils import comm
+from detectron2.utils.logger import setup_logger
+
 
 import _init_paths
 from dataset.utils import register_dataset, get_records, get_groups_from_records, group_kfold_indices, register_split
@@ -147,6 +149,8 @@ def main():
     logger.setLevel(logging.INFO)
     console = logging.StreamHandler()
     logging.getLogger('').addHandler(console)
+
+    setup_logger(output=str(final_otuput_dir), name='train_prac')
 
     # keep = ["level_0", "level_1", "level_2"]
 

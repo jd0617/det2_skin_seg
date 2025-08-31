@@ -4,6 +4,7 @@ import argparse
 import logging
 from datetime import timedelta, datetime
 from pathlib import Path
+from functools import partial
 
 import torch
 import random
@@ -119,6 +120,13 @@ def update_cfg_with_args(cfg, arg_key, arg_value):
     cfg.freeze()
 
 def run_nested_cv(logger, base_ds_name, cfg, output_dir, k_outer=5, k_inner=3, seed=24):
+
+    def _write_kfold_idx(txt, file_path):
+        txt = str(txt)
+
+        with open(file_path, 'a') as f:
+            f.write(txt)
+
     records = DatasetCatalog.get(base_ds_name)
     groups = get_groups_from_records(records)
     idx_all = np.arange(len(records))
@@ -130,6 +138,8 @@ def run_nested_cv(logger, base_ds_name, cfg, output_dir, k_outer=5, k_inner=3, s
     best_score = -1
     best_model_path = None
 
+    _write_kfold_idx = partial(_write_kfold_idx, file_path=os.path.join(outptut_dir, "kfold_indices.txt"))
+
     for o_fold, (outer_tr_idx, outer_te_idx) in enumerate(outer_split):
         
         ofold_prefix = f"ofold_{o_fold}"
@@ -139,6 +149,8 @@ def run_nested_cv(logger, base_ds_name, cfg, output_dir, k_outer=5, k_inner=3, s
         test_name = f"o{o_fold}_te"
 
         logger.info(f"Running outer fold {o_fold}")
+
+        _write_kfold_idx(f"\nOuter_fold_{o_fold}_Test: {len(outer_te_idx)}")
 
         ofold_cfg = build_cfg(cfg, f"o{o_fold}_tr", test_name, ofold_output_dir)
 
@@ -155,6 +167,9 @@ def run_nested_cv(logger, base_ds_name, cfg, output_dir, k_outer=5, k_inner=3, s
 
             inner_tr_name = f"o{o_fold}_inner_tr_{i_fold}"
             inner_va_name = f"o{o_fold}_inner_va_{i_fold}"
+
+            _write_kfold_idx(f"==> Inner_fold_{i_fold}_Train: {len(inner_tr_rel)}")
+            _write_kfold_idx(f"==> Inner_fold_{i_fold}_Validation: {len(inner_va_rel)}\n")
 
             register_split(inner_tr_name, records, inner_tr_idx, base_name_with_classes=base_ds_name)
             register_split(inner_va_name, records, inner_va_idx, base_name_with_classes=base_ds_name)
