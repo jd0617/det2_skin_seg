@@ -60,27 +60,47 @@ class MyTrainer(DefaultTrainer):
         model = build_model(cfg)
 
         return model
+
+from detectron2.data import detection_utils as utils
+from detectron2.structures import BoxMode
+import copy
+
+def keep_gt_mapper(dataset_dict):
+    # make a deep copy
+    d = copy.deepcopy(dataset_dict)
+
+    # load image
+    image = utils.read_image(d["file_name"], format="BGR")
+    d["image"] = torch.as_tensor(image.transpose(2, 0, 1).copy())
+
+    # DO NOT drop annotations
+    if "annotations" in d:
+        for ann in d["annotations"]:
+            ann["bbox_mode"] = ann.get("bbox_mode", BoxMode.XYWH_ABS)
+
+    d["height"], d["width"] = image.shape[:2]
+    return d
+  
+# def register_coco_binary_remap(name, json_file, img_root):
+#     from detectron2.data.datasets import load_coco_json
     
-def register_coco_binary_remap(name, json_file, img_root):
-    from detectron2.data.datasets import load_coco_json
+#     def _loader():
+#         ds = load_coco_json(json_file, img_root, name)
+#         out = []
+#         for d in ds:
+#             d = d.copy()
+#             anns = []
+#             for a in d.get('annotations', []):
+#                 old = int(a["category_id"])
+#                 if old > 1:
+#                     a = a.copy()
+#                     a["category_id"] = 1
+#                 anns.append(a)
+#             d["annotations"] = anns
+#             out.append(d)
+#         return out
     
-    def _loader():
-        ds = load_coco_json(json_file, img_root, name)
-        out = []
-        for d in ds:
-            d = d.copy()
-            anns = []
-            for a in d.get('annotations', []):
-                old = int(a["category_id"])
-                if old > 1:
-                    a = a.copy()
-                    a["category_id"] = 1
-                anns.append(a)
-            d["annotations"] = anns
-            out.append(d)
-        return out
-    
-    DatasetCatalog.register(name, _loader)
+#     DatasetCatalog.register(name, _loader)
 
 
 
@@ -103,8 +123,8 @@ def main():
     start_time = time.monotonic()
     
     cfg.merge_from_file(model_zoo.get_config_file(
-        # "COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml"
-        'COCO-Detection/retinanet_R_50_FPN_1x.yaml'
+        "COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml"
+        # 'COCO-Detection/retinanet_R_50_FPN_1x.yaml'
 
     ))
 
@@ -163,7 +183,7 @@ def main():
                 VisualizeEval(cfg.DATASETS.TEST[0], output_dir=final_output_dir,
                               max_images=100, score_thresh=0.05, topk=300)
             ])
-    test_loader = build_detection_test_loader(cfg, cfg.DATASETS.TEST[0])
+    test_loader = build_detection_test_loader(cfg, cfg.DATASETS.TEST[0], mapper=keep_gt_mapper)
     results = inference_on_dataset(trainer.model, test_loader, evaluator) 
 
     print(results)

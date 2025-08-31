@@ -113,12 +113,22 @@ class VisualizeEval(DatasetEvaluator):
             else:
                 img = cv2.imread(inp["file_name"])  # fallback
 
+            # Draw GT
             vis = Visualizer(
                 img[:, :, ::-1], metadata=self.meta, scale=1.0, instance_mode=ColorMode.IMAGE
             )
+            if "annotations" in inp:
+                annos = []
+                for a in inp["annotations"]:
+                    b = {k: v for k, v in a.items() if k != "segmentation"}  # drop mask
+                    annos.append(b)
+                vis = vis.draw_dataset_dict({**inp, "annotations":annos})
+
             drawn = vis.draw_instance_predictions(inst).get_image()[:, :, ::-1]
             # name file by image_id if available
             stem = str(inp.get("image_id", os.path.basename(inp["file_name"])))
+
+            drawn = cv2.cvtColor(drawn, cv2.COLOR_RGB2BGR)
             cv2.imwrite(os.path.join(self.output_dir, f"{stem}.jpg"), drawn)
             self._count += 1
 
