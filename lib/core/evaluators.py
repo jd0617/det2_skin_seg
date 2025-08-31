@@ -122,9 +122,10 @@ class VisualizeEval(DatasetEvaluator):
                 for a in inp["annotations"]:
                     b = {k: v for k, v in a.items() if k != "segmentation"}  # drop mask
                     annos.append(b)
-                vis = vis.draw_dataset_dict({**inp, "annotations":annos})
+                vis_img = vis.draw_dataset_dict({**inp, "annotations":annos})
 
-            drawn = vis.draw_instance_predictions(inst).get_image()[:, :, ::-1]
+            vis_img = vis.draw_instance_predictions(inst)
+            drawn = vis_img.get_image()[:, :, ::-1]
             # name file by image_id if available
             stem = str(inp.get("image_id", os.path.basename(inp["file_name"])))
 

@@ -82,28 +82,6 @@ def keep_gt_mapper(dataset_dict):
 
     d["height"], d["width"] = image.shape[:2]
     return d
-  
-# def register_coco_binary_remap(name, json_file, img_root):
-#     from detectron2.data.datasets import load_coco_json
-    
-#     def _loader():
-#         ds = load_coco_json(json_file, img_root, name)
-#         out = []
-#         for d in ds:
-#             d = d.copy()
-#             anns = []
-#             for a in d.get('annotations', []):
-#                 old = int(a["category_id"])
-#                 if old > 1:
-#                     a = a.copy()
-#                     a["category_id"] = 1
-#                 anns.append(a)
-#             d["annotations"] = anns
-#             out.append(d)
-#         return out
-    
-#     DatasetCatalog.register(name, _loader)
-
 
 
 def update_cfg_with_args(cfg, arg_key, arg_value):
@@ -150,7 +128,7 @@ def main():
     console = logging.StreamHandler()
     logging.getLogger('').addHandler(console)
 
-    setup_logger(output=str(final_otuput_dir), name='train_prac')
+    setup_logger(output=str(final_output_dir), name='train_prac')
 
     # keep = ["level_0", "level_1", "level_2"]
 
