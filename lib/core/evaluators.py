@@ -19,62 +19,62 @@ from tqdm import tqdm
 # from .metrics import dice_score_np, dice_score_calc, get_confusion_metrics
 # from .vis import save_batch_img_with_mask
 
-try:
-    from torchmetrics.functional import dice
-except ImportError:
-    from torchmetrics.functional.segmentation import dice_score
-    dice = partial(dice_score, num_classes=2)
+# try:
+#     from torchmetrics.functional import dice
+# except ImportError:
+#     from torchmetrics.functional.segmentation import dice_score
+#     dice = partial(dice_score, num_classes=2)
 
 
 logger = logging.getLogger(__name__)
 
 
 
-class DiceScoreEvaluator(DatasetEvaluator):
-    def __init__(self, cfg, from_logits=True, threshold=0.5, mode:str='train'): # , vis=True, filename='vis.png'
-        self.results = []
+# class DiceScoreEvaluator(DatasetEvaluator):
+#     def __init__(self, cfg, from_logits=True, threshold=0.5, mode:str='train'): # , vis=True, filename='vis.png'
+#         self.results = []
 
-        self.cfg = cfg
-        self.from_logits = from_logits
-        self.threshold = threshold
-        self.mode = mode.lower()
-        self.vis_root = cfg.OUTPUT_DIR + "/vis_train" if mode == 'train' else cfg.OUTPUT_DIR + "/vis_test"
+#         self.cfg = cfg
+#         self.from_logits = from_logits
+#         self.threshold = threshold
+#         self.mode = mode.lower()
+#         self.vis_root = cfg.OUTPUT_DIR + "/vis_train" if mode == 'train' else cfg.OUTPUT_DIR + "/vis_test"
 
-        # self.vis = vis
-        # if vis:
-        #     Path(self.vis_root).mkdir(parents=True, exist_ok=True)
-        # self.filename = filename
+#         # self.vis = vis
+#         # if vis:
+#         #     Path(self.vis_root).mkdir(parents=True, exist_ok=True)
+#         # self.filename = filename
 
-    def reset(self):
-        self.results = []
+#     def reset(self):
+#         self.results = []
 
-    def process(self, inputs, outputs):
+#     def process(self, inputs, outputs):
 
-        for input, output in zip(inputs, outputs):
-            gt_masks = input["instances"].gt_masks.tensor  # (num_gt, H, W)
-            pred_masks = output["instances"].pred_masks
+#         for input, output in zip(inputs, outputs):
+#             gt_masks = input["instances"].gt_masks.tensor  # (num_gt, H, W)
+#             pred_masks = output["instances"].pred_masks
 
-            num_gt, num_pred = gt_masks.shape[0], pred_masks.shape[0]
+#             num_gt, num_pred = gt_masks.shape[0], pred_masks.shape[0]
 
-            assert num_gt == num_pred, f"Mismatch: {num_gt} GT masks vs {num_pred} predicted masks"
+#             assert num_gt == num_pred, f"Mismatch: {num_gt} GT masks vs {num_pred} predicted masks"
 
-            if self.from_logits:
-                pred_masks = torch.sigmoid(pred_masks)
+#             if self.from_logits:
+#                 pred_masks = torch.sigmoid(pred_masks)
             
-            pred_masks = (pred_masks > self.threshold).float()
+#             pred_masks = (pred_masks > self.threshold).float()
 
-            dice_score = dice(pred_masks, gt_masks.int())
+#             dice_score = dice(pred_masks, gt_masks.int())
 
-            self.results.append(dice_score)
+#             self.results.append(dice_score)
 
-        # if self.vis:
-        #     self.vis_batch(inputs, outputs, self.vis_root + "/vis_batch.png")
+#         # if self.vis:
+#         #     self.vis_batch(inputs, outputs, self.vis_root + "/vis_batch.png")
 
 
-    def evaluate(self):
-        if len(self.results) == 0:
-            return {"dice_score": float("nan")}
-        return {"dice_score": sum(self.results) / len(self.results)}
+#     def evaluate(self):
+#         if len(self.results) == 0:
+#             return {"dice_score": float("nan")}
+#         return {"dice_score": sum(self.results) / len(self.results)}
     
 
 class VisualizeEval(DatasetEvaluator):

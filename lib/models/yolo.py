@@ -7,6 +7,7 @@ from detectron2.data import detection_utils as utils, transforms as T
 from detectron2.evaluation import COCOEvaluator
 
 from ultralytics import YOLO
+from ultralytics.models.yolo.detect import DetectionTrainer
 
 
 from .utils import minmax_mapper
@@ -17,7 +18,7 @@ class UltralyticsYOLO(nn.Module):
         super().__init__()
         # load YOLOv8 model from Ultralytics
         # e.g. cfg.MODEL.YOLO.MODEL_NAME = "yolov8n.pt"
-        self.model = YOLO(cfg.MODEL.EXTRA.MODEL_NAME)
+        self.model = YOLO(cfg.MODEL.EXTRA.MODEL_NAME).model
         self.device = torch.device(cfg.MODEL.DEVICE)
         self.model.to(self.device)
 

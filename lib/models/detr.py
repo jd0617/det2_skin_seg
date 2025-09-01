@@ -11,40 +11,40 @@ from detectron2.evaluation import COCOEvaluator
 import numpy as np
 
 
-@META_ARCH_REGISTRY.register()
-class DETRWrapper(nn.Module):
-    def __init__(self, cfg):
-        super().__init__()
-        from torchvision.models.detection import detr_resnet50
-        self.model = detr_resnet50(
-            weights=cfg.MODEL.WEIGHT, 
-            num_classes=cfg.MODEL.NUM_CLASSES, 
-            num_queries=cfg.MODEL.EXTRA.NUM_Q)
-        self.device = torch.device(cfg.MODEL.DEVICE)
-        self.to(self.device)
+# @META_ARCH_REGISTRY.register()
+# class DETRWrapper(nn.Module):
+#     def __init__(self, cfg):
+#         super().__init__()
+#         from torchvision.models.detection import detr_resnet50
+#         self.model = detr_resnet50(
+#             weights=cfg.MODEL.WEIGHT, 
+#             num_classes=cfg.MODEL.NUM_CLASSES, 
+#             num_queries=cfg.MODEL.EXTRA.NUM_Q)
+#         self.device = torch.device(cfg.MODEL.DEVICE)
+#         self.to(self.device)
 
-    def forward(self, batched_inputs):
-        images = [x["image"].to(self.device) for x in batched_inputs]
-        if self.training:
-            targets = []
-            for x in batched_inputs:
-                inst: Instances = x["instances"].to(self.device)
-                t = {
-                    "boxes": inst.gt_boxes.tensor,
-                    "labels": inst.gt_classes,
-                }
-                targets.append(t)
-            return self.model(images, targets)   # returns dict of losses
+#     def forward(self, batched_inputs):
+#         images = [x["image"].to(self.device) for x in batched_inputs]
+#         if self.training:
+#             targets = []
+#             for x in batched_inputs:
+#                 inst: Instances = x["instances"].to(self.device)
+#                 t = {
+#                     "boxes": inst.gt_boxes.tensor,
+#                     "labels": inst.gt_classes,
+#                 }
+#                 targets.append(t)
+#             return self.model(images, targets)   # returns dict of losses
 
-        preds = self.model(images)  # list of dicts: "boxes","scores","labels"
-        results = []
-        for inp, p in zip(batched_inputs, preds):
-            inst = Instances((inp["height"], inp["width"]))
-            inst.pred_boxes   = Boxes(p["boxes"])
-            inst.scores       = p["scores"]
-            inst.pred_classes = p["labels"]
-            results.append({"instances": inst})
-        return results
+#         preds = self.model(images)  # list of dicts: "boxes","scores","labels"
+#         results = []
+#         for inp, p in zip(batched_inputs, preds):
+#             inst = Instances((inp["height"], inp["width"]))
+#             inst.pred_boxes   = Boxes(p["boxes"])
+#             inst.scores       = p["scores"]
+#             inst.pred_classes = p["labels"]
+#             results.append({"instances": inst})
+#         return results
 
 
 def detr_minmax_mapper(dataset_dict):

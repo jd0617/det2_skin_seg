@@ -39,19 +39,19 @@ INPUT:
   MASK_FORMAT: "bitmask" #"polygon"
 
 MODEL:
-  MODEL: "detr"
+  MODEL: "yolo"
   WEIGHTS: "DEFAULT"
-  META_ARCHITECTURE: DETRWrapper
+  META_ARCHITECTURE: UltralyticsYOLO
   PRETRAINED: ''
   PRETRAINED_STRICT: False
   MASK_ON: False
   MASK_SHAPE: [150, 300]
   MINMAX: True
-  FROM_LOGITS: True
-  ALIGN_CORNERS: True
   NUM_CLASSES: 2
   EXTRA:
-    NUM_Q: 15
+    MODEL_NAME: "yolo11n.pt"
+    SCORE_THRESH_TEST: 0.5
+
 
 # LOSS:
 #   LOSS: DiceLossWithBCE
