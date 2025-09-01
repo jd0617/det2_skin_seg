@@ -43,8 +43,12 @@ DETR = CN()
 DETR.NUM_CLASSES = 2
 DETR.NUM_Q = 15
 
+YOLO = CN()
+YOLO.MODEL_NAME = "yolov8n.pt"
+
 
 MODEL_EXTRAS = {
     "hrnet": HIGH_RESOLUTION_NET,
-    "detr": DETR
+    "detr": DETR,
+    "yolo": YOLO
 }

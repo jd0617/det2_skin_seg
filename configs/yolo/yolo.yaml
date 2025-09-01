@@ -1,0 +1,112 @@
+AUTO_RESUME: true
+CUDNN:
+  BENCHMARK: false
+  DETERMINISTIC: true
+  ENABLED: true
+GPUS: (0,)
+SEED: 24
+
+RECORD_BASE: './project/record/only_complete_600x1200_obj_det/kfold_inner_random_oc' #'/home/jd0617/Saved/cls_by_patient/rgb' '/tmp/testestes' # 
+OUTPUT_DIR: 'result_single/yolo' #retinanet
+
+K_FOLD: 5
+VAL_K_FOLD: 3
+RESUME_K: 3 # idx start from 0
+RESUME_INNER_K: 0 # idx start from 0
+DATALOADER:
+  NUM_WORKERS: 4
+
+DATASETS:
+  DATASET: CompletePatch # CellByPatient
+  IMG_DIR: "/workspace/datasets/seg_by_patient/preprocessed/pos_cropped_patch_all_r1_r2"
+  ANNO_DIR: "/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/pre_all_complete_merge.json"
+  TRAIN_ANNO_DIR: '/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/pre_all_complete_train.json'
+  TEST_ANNO_DIR: '/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/pre_all_complete_test.json'
+  TRAIN: ('my_train', )
+  TEST: ('my_test', )
+  SHUFFLE: true
+  KFOLD_LIST: '' #'/home/jd0617/Datasets_Models/Datasets/seg_by_patient/anno/k5_v3_patient_list.json' 
+
+INPUT:
+  MIN_SIZE_TRAIN: (600, )
+  MAX_SIZE_TRAIN: 1200
+  MIN_SIZE_TEST: 600
+  MAX_SIZE_TEST: 1200
+  RANDOM_FLIP: 'none'
+  CROP:
+    ENABLED: False
+  FORMAT: 'RGB'
+  MASK_FORMAT: "bitmask" #"polygon"
+
+MODEL:
+  MODEL: "detr"
+  WEIGHTS: "DEFAULT"
+  META_ARCHITECTURE: DETRWrapper
+  PRETRAINED: ''
+  PRETRAINED_STRICT: False
+  MASK_ON: False
+  MASK_SHAPE: [150, 300]
+  MINMAX: True
+  FROM_LOGITS: True
+  ALIGN_CORNERS: True
+  NUM_CLASSES: 2
+  EXTRA:
+    NUM_Q: 15
+
+# LOSS:
+#   LOSS: DiceLossWithBCE
+#   REDUCTION: mean
+#   ALPHA: 0.5
+#   BETA: 0.5
+#   GAMMA: 2.0
+#   SMOOTH: 1e-6
+#   DICE_RAT: 1.0
+
+TRAIN:
+  BATCH_SIZE_PER_GPU: 16
+  OPTIMIZER: adam
+  LR: 0.002 # 0.002 for normal, 0.0002 for smaller dataset
+  LR_FACTOR: 0.1
+  LR_STEP:
+  - 96 # 64
+  - 110 # 75
+  WD: 0.0001
+  GAMMA1: 0.99
+  GAMMA2: 0.0
+  MOMENTUM: 0.9
+  NESTEROV: false
+
+TEST:
+  BATCH_SIZE_PER_GPU: 16
+  TEST_MODEL_FILE: ''
+  EVAL_PERIOD: 0 # MAX_ITER // num_epochs
+
+DEBUG:
+  DEBUG: true
+  SAVE_BATCH_IMAGES_RESULTS: true
+  SAVE_EMBED_VIS: true
+
+SOLVER:
+  IMS_PER_BATCH: 16
+  BASE_LR: 0.01
+  MAX_ITER: 1373 # (num_samples / batch_size) × num_epochs
+  EPOCHS: 50
+  LR_SCHEDULER_NAME : "WarmupMultiStepLR"
+  WARMUP_ITERS: 130
+  MOMENTUM : 0.9
+  NESTEROV : False
+  WEIGHT_DECAY : 0.0001
+  WEIGHT_DECAY_NORM : 0.0
+  GAMMA : 0.1
+  STEPS : (829, 1098)
+  CHECKPOINT_PERIOD : 200
+  REFERENCE_WORLD_SIZE : 1
+  BIAS_LR_FACTOR : 1.0
+  WEIGHT_DECAY_BIAS : None  # None means following WEIGHT_DECAY
+  CLIP_GRADIENTS:
+    ENABLED: True
+    CLIP_TYPE : "value"
+    CLIP_VALUE : 1.0
+    NORM_TYPE : 2.0
+  AMP: 
+    ENABLED: True

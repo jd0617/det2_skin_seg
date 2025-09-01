@@ -1,7 +1,15 @@
 import torch, torch.nn as nn
-from detectron2.modeling import META_ARCH_REGISTRY
+from detectron2.modeling import META_ARCH_REGISTRY, build_model
 from detectron2.structures import Instances, Boxes
+from detectron2.engine import DefaultTrainer
+from detectron2.data import build_detection_train_loader, build_detection_test_loader
+from detectron2.data import detection_utils as utils, transforms as T
+from detectron2.evaluation import COCOEvaluator
+
 from ultralytics import YOLO
+
+
+from .utils import minmax_mapper
 
 @META_ARCH_REGISTRY.register()
 class UltralyticsYOLO(nn.Module):
@@ -9,11 +17,11 @@ class UltralyticsYOLO(nn.Module):
         super().__init__()
         # load YOLOv8 model from Ultralytics
         # e.g. cfg.MODEL.YOLO.MODEL_NAME = "yolov8n.pt"
-        self.model = YOLO(cfg.MODEL.YOLO.MODEL_NAME)
+        self.model = YOLO(cfg.MODEL.EXTRA.MODEL_NAME)
         self.device = torch.device(cfg.MODEL.DEVICE)
         self.model.to(self.device)
 
-        self.score_thresh = cfg.MODEL.YOLO.SCORE_THRESH_TEST
+        self.score_thresh = cfg.MODEL.EXTRA.SCORE_THRESH_TEST
         self.max_det      = cfg.TEST.DETECTIONS_PER_IMAGE
 
     def forward(self, batched_inputs):
@@ -59,3 +67,22 @@ class UltralyticsYOLO(nn.Module):
                 inst.pred_classes = classes
                 outputs.append({"instances": inst})
             return outputs
+        
+class YOLOTrainer(DefaultTrainer):
+    @classmethod
+    def build_train_loader(cls, cfg):
+        return build_detection_train_loader(cfg, mapper=minmax_mapper)
+
+    @classmethod
+    def build_test_loader(cls, cfg, dataset_name):
+        return build_detection_test_loader(cfg, dataset_name, mapper=minmax_mapper)
+
+    @classmethod
+    def build_evaluator(cls, cfg, dataset_name, output_folder=None):
+        return COCOEvaluator(dataset_name, cfg, False, output_dir=output_folder)
+    
+    @classmethod
+    def build_model(cls, cfg):
+        model = build_model(cfg)
+
+        return model

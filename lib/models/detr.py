@@ -1,6 +1,6 @@
 # models/detr_wrapper.py
 import torch, torch.nn as nn
-from detectron2.modeling import META_ARCH_REGISTRY
+from detectron2.modeling import META_ARCH_REGISTRY, build_model
 from detectron2.structures import Instances, Boxes, BoxMode
 
 from detectron2.engine import DefaultTrainer
@@ -96,3 +96,9 @@ class DETRTrainer(DefaultTrainer):
     @classmethod
     def build_evaluator(cls, cfg, dataset_name, output_folder=None):
         return COCOEvaluator(dataset_name, cfg, False, output_dir=output_folder)
+    
+    @classmethod
+    def build_model(cls, cfg):
+        model = build_model(cfg)
+
+        return model

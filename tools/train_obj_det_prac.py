@@ -22,6 +22,7 @@ from detectron2.utils.logger import setup_logger
 
 
 import _init_paths
+import models as models
 from dataset.utils import register_dataset, get_records, get_groups_from_records, group_kfold_indices, register_split
 from dataset.utils import register_patch_bin_dataset
 from core import VisualizeEval
@@ -31,7 +32,9 @@ from utils.utils import  create_logger
 
 config_parser = parser = argparse.ArgumentParser(description='Training Config', add_help=False)
 parser.add_argument('-c', '--cfg',
-                    default='/workspace/project/configs/hrnet/w32_obj_det.yaml',
+                    # default='/workspace/project/configs/hrnet/w32_obj_det.yaml',
+                    default='/workspace/project/configs/yolo/yolo.yaml',
+
                     type=str, metavar='FILE',
                     help='YAML config file specifying default arguments')
 parser.add_argument('--ds-root', metavar='DIR', default='',
@@ -50,6 +53,16 @@ def set_seed(s=42):
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
 
+def get_trainer(cfg):
+    m = cfg.MODEL.MODEL
+    mc = m.upper()
+
+    if m == "":
+        trainer = MyTrainer(cfg)
+    else:
+        trainer = eval(f"models.{m}.{mc}Trainer")(cfg)
+
+    return trainer
 
 class MyTrainer(DefaultTrainer):
     # @classmethod
@@ -101,12 +114,13 @@ def main():
 
     start_datetime = datetime.now()
     start_time = time.monotonic()
-    
-    cfg.merge_from_file(model_zoo.get_config_file(
-        "COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml"
-        # 'COCO-Detection/retinanet_R_50_FPN_1x.yaml'
 
-    ))
+    if cfg.MODEL.MODEL == "":
+        cfg.merge_from_file(model_zoo.get_config_file(
+            "COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml"
+            # 'COCO-Detection/retinanet_R_50_FPN_1x.yaml'
+
+        ))
 
     update_config(cfg, args)
     
@@ -154,7 +168,7 @@ def main():
 
     set_seed(cfg.SEED)
 
-    trainer = MyTrainer(cfg)
+    trainer = get_trainer(cfg) #MyTrainer(cfg)
     trainer.resume_or_load(resume=False)
     trainer.train()
 

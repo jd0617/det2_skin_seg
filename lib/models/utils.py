@@ -1,5 +1,15 @@
 import torch
 import torch.nn as nn
+import numpy as np
+
+# from detectron2.modeling import META_ARCH_REGISTRY
+from detectron2.structures import BoxMode
+
+# from detectron2.engine import DefaultTrainer
+# from detectron2.data import build_detection_train_loader, build_detection_test_loader
+from detectron2.data import detection_utils as utils, transforms as T
+# from detectron2.evaluation import COCOEvaluator
+
 
 def conv3x3(in_planes, out_planes, stride=1, padding=1):
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
@@ -105,3 +115,39 @@ def load_checkpoint(model,
 
     load_state_dict(model, state_dict, strict, logger)
     return checkpoint
+
+
+def minmax_mapper(dataset_dict):
+    """
+    Mapper for DETR with no resize/flip and simple min-max normalization [0,1].
+    """
+    dataset_dict = dataset_dict.copy()
+
+    # Load image as BGR
+    image = utils.read_image(dataset_dict["file_name"], format="BGR")
+
+    # Convert to RGB
+    image = image[:, :, ::-1].astype("float32")
+
+    # --- Min-max normalization ---
+    min_val = np.min(image)
+    max_val = np.max(image)
+    if max_val > min_val:  # avoid division by zero
+        image = (image - min_val) / (max_val - min_val)
+    else:
+        image = np.zeros_like(image)
+
+    # To tensor
+    image = torch.as_tensor(image.transpose(2, 0, 1).copy())
+    dataset_dict["image"] = image
+
+    # Convert annotations into Instances
+    if "annotations" in dataset_dict:
+        annos = dataset_dict["annotations"]
+        for ann in annos:
+            ann["bbox_mode"] = ann.get("bbox_mode", BoxMode.XYWH_ABS)
+        instances = utils.annotations_to_instances(annos, image.shape[1:])
+        dataset_dict["instances"] = utils.filter_empty_instances(instances)
+
+    dataset_dict["height"], dataset_dict["width"] = image.shape[1:]
+    return dataset_dict
