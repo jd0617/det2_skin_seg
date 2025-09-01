@@ -26,6 +26,8 @@ RUN pip install --no-cache-dir -r /workspace/project/requirements.txt
 
 RUN python -m pip install 'git+https://github.com/facebookresearch/detectron2.git'
 
+RUN python -m pip install ultralytics --no-deps
+
 RUN mkdir -p /workspace/output_log/
 RUN mkdir -p /workspace/datasets/
 RUN mkdir -p /workspace/models/

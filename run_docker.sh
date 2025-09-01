@@ -11,4 +11,4 @@ docker run -d --gpus all --ipc=host \
 -v ${DATA_PATH}:"/workspace/datasets" \
 -v ${OUTPUT_DIR}:/workspace/output_log \
 -v ${MODEL_DIR}:/workspace/models \
--it --rm det2:my0
+-it --rm jd061798/det2:my0
