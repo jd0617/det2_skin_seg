@@ -1,6 +1,8 @@
 from detectron2.evaluation import DatasetEvaluator
 from detectron2.data import MetadataCatalog
-from detectron2.utils.visualizer import Visualizer, ColorMode
+from detectron2.utils.visualizer import Visualizer, ColorMode, _create_text_labels
+from detectron2.structures import Instances, Boxes, BoxMode
+
 
 import logging
 import torch
@@ -14,8 +16,8 @@ from functools import partial
 
 from tqdm import tqdm
 
-from .metrics import dice_score_np, dice_score_calc, get_confusion_metrics
-from .vis import save_batch_img_with_mask
+# from .metrics import dice_score_np, dice_score_calc, get_confusion_metrics
+# from .vis import save_batch_img_with_mask
 
 try:
     from torchmetrics.functional import dice
@@ -118,18 +120,45 @@ class VisualizeEval(DatasetEvaluator):
                 img[:, :, ::-1], metadata=self.meta, scale=1.0, instance_mode=ColorMode.IMAGE
             )
             if "annotations" in inp:
-                annos = []
-                for a in inp["annotations"]:
-                    b = {k: v for k, v in a.items() if k != "segmentation"}  # drop mask
-                    annos.append(b)
-                vis_img = vis.draw_dataset_dict({**inp, "annotations":annos})
+                # annos = []
+                for ann in inp["annotations"]:
+                    bbox = ann["bbox"]
+                    # make sure it's XYXY
+                    if ann["bbox_mode"] != BoxMode.XYXY_ABS:
+                        bbox = BoxMode.convert(bbox, ann["bbox_mode"], BoxMode.XYXY_ABS)
+                    x0, y0, x1, y1 = bbox
 
-            vis_img = vis.draw_instance_predictions(inst)
-            drawn = vis_img.get_image()[:, :, ::-1]
+                    class_id = ann["category_id"]
+                    class_name = self.meta.thing_classes[class_id] if len(self.meta.thing_classes) > 0 else str(class_id)
+                    text = f"GT: {class_name}"
+
+                    vis.draw_box([x0, y0, x1, y1], edge_color=(0.0,1.0,0.0))
+                    vis.draw_text(text, (x0, y0), color=(0.0,1.0,0.0))
+
+                    # b = {k: v for k, v in a.items() if k != "segmentation"}  # drop mask
+                    # annos.append(b)
+                # vis_img = vis.draw_dataset_dict({**inp, "annotations":annos})
+
+            if len(inst) > 0:
+                boxes = inst.pred_boxes.tensor.numpy()
+                scores = inst.scores.tolist()
+                classes = inst.pred_classes.tolist()
+
+                for box, score, cls_id in zip(boxes, scores, classes):
+                    x0, y0, x1, y1 = box
+                    cls_name = self.meta.thing_classes[cls_id] if len(self.meta.thing_classes) > 0 else str(cls_id)
+                    text = f"Pred: {cls_name} {score:.2f}"
+
+                    vis.draw_box([x0, y0, x1, y1], edge_color=(1.0, 0.0, 0.0))
+                    vis.draw_text(text, (x0, y0), color=(1.0, 0.0, 0.0))
+
+            # vis_img = vis.draw_instance_predictions(inst)
+            vis_out = vis.output
+            drawn = vis_out.get_image()[:, :, ::-1]
             # name file by image_id if available
             stem = str(inp.get("image_id", os.path.basename(inp["file_name"])))
 
-            drawn = cv2.cvtColor(drawn, cv2.COLOR_RGB2BGR)
+            # drawn = cv2.cvtColor(drawn, cv2.COLOR_RGB2BGR)
             cv2.imwrite(os.path.join(self.output_dir, f"{stem}.jpg"), drawn)
             self._count += 1
 

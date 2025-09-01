@@ -6,8 +6,8 @@ CUDNN:
 GPUS: (0,)
 SEED: 24
 
-RECORD_BASE: '/workspace/project/record/debug' #'./project/record/only_complete_600x1200_obj_det/kfold_inner_random_oc' #'/home/jd0617/Saved/cls_by_patient/rgb' '/tmp/testestes' # 
-OUTPUT_DIR: 'result_single/frcnn_vis4' #retinanet
+RECORD_BASE: '/workspace/project/record/debug2' #'./project/record/only_complete_600x1200_obj_det/kfold_inner_random_oc' #'/home/jd0617/Saved/cls_by_patient/rgb' '/tmp/testestes' # 
+OUTPUT_DIR: 'result_single/frcnn_vis' #retinanet
 
 K_FOLD: 5
 VAL_K_FOLD: 3
