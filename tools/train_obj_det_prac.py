@@ -119,7 +119,6 @@ def main():
         cfg.merge_from_file(model_zoo.get_config_file(
             "COCO-Detection/faster_rcnn_R_50_FPN_1x.yaml"
             # 'COCO-Detection/retinanet_R_50_FPN_1x.yaml'
-
         ))
 
     update_config(cfg, args)
