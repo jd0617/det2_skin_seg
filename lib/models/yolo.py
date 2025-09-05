@@ -30,6 +30,10 @@ class UltralyticsYOLO(nn.Module):
 
         self.criterion = v8DetectionLoss(self.backbone)
 
+        for p in self.backbone.parameters():
+            p.requires_grad = True
+
+
     def forward(self, batched_inputs):
 
         device = next(self.parameters()).device

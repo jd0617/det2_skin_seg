@@ -32,8 +32,8 @@ from utils.utils import  create_logger
 
 config_parser = parser = argparse.ArgumentParser(description='Training Config', add_help=False)
 parser.add_argument('-c', '--cfg',
-                    default='/workspace/project/configs/hrnet/w32_obj_det.yaml',
-                    # default='/workspace/project/configs/yolo/yolo.yaml',
+                    # default='/workspace/project/configs/hrnet/w32_obj_det.yaml',
+                    default='/workspace/project/configs/yolo/yolo.yaml',
 
                     type=str, metavar='FILE',
                     help='YAML config file specifying default arguments')
@@ -168,7 +168,7 @@ def main():
     set_seed(cfg.SEED)
 
     trainer = get_trainer(cfg) #MyTrainer(cfg)
-    trainer.resume_or_load(resume=False)
+    # trainer.resume_or_load(resume=False)
     trainer.train()
 
     logger.info("=====> Testing <=====")
