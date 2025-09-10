@@ -32,9 +32,9 @@ from utils.utils import  create_logger
 
 config_parser = parser = argparse.ArgumentParser(description='Training Config', add_help=False)
 parser.add_argument('-c', '--cfg',
+                    default='/workspace/project/configs/frcnn/frcnn.yaml',
                     # default='/workspace/project/configs/hrnet/w32_obj_det.yaml',
-                    default='/workspace/project/configs/yolo/yolo.yaml',
-
+                    # default='/workspace/project/configs/yolo/yolo.yaml',
                     type=str, metavar='FILE',
                     help='YAML config file specifying default arguments')
 parser.add_argument('--ds-root', metavar='DIR', default='',
@@ -58,6 +58,7 @@ def get_trainer(cfg):
     mc = m.upper()
 
     if m == "":
+        print("Using default MyTrainer")
         trainer = MyTrainer(cfg)
     else:
         trainer = eval(f"models.{m}.{mc}Trainer")(cfg)
