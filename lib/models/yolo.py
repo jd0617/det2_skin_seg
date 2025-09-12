@@ -6,88 +6,32 @@ from detectron2.data import build_detection_train_loader, build_detection_test_l
 from detectron2.data import detection_utils as utils, transforms as T
 from detectron2.evaluation import COCOEvaluator
 
-from ultralytics import YOLO
-from ultralytics.models.yolo.detect import DetectionTrainer
+from ultralytics.nn.modules.block import C3k2, C3k, Bottleneck
+from ultralytics.nn.modules.block import SPPF, C2PSA, PSABlock
+from ultralytics.nn.modules.conv import Conv
+from ultralytics.nn.modules.head import Detect
+
 from ultralytics.utils.loss import v8DetectionLoss
 
+class YOLO11n(nn.Module):
+    super().__init__()
 
+    def __init__(self, cfg, verbose=False):
+                self.callbacks = callbacks.get_default_callbacks()
+        self.predictor = None  # reuse predictor
+        self.model = None  # model object
+        self.trainer = None  # trainer object
+        self.ckpt = {}  # if loaded from *.pt
+        self.cfg = None  # if loaded from *.yaml
+        self.ckpt_path = None
+        self.overrides = {}  # overrides for trainer object
+        self.metrics = None  # validation/training metrics
+        self.session = None  # HUB session
+        self.task = task  # task type
+        self.model_name = None  # model name
 
 from .utils import minmax_mapper
 
-@META_ARCH_REGISTRY.register()
-class UltralyticsYOLO(nn.Module):
-    def __init__(self, cfg):
-        super().__init__()
-        # load YOLOv8 model from Ultralytics
-        # e.g. cfg.MODEL.YOLO.MODEL_NAME = "yolov8n.pt"
-        yolo = YOLO(cfg.MODEL.EXTRA.MODEL_NAME)
-        self.backbone = yolo.model
-        self.device = torch.device(cfg.MODEL.DEVICE)
-        self.backbone.to(self.device)
-
-        self.score_thresh = cfg.MODEL.EXTRA.SCORE_THRESH_TEST
-        self.max_det      = cfg.TEST.DETECTIONS_PER_IMAGE
-
-        self.criterion = v8DetectionLoss(self.backbone)
-
-        for p in self.backbone.parameters():
-            p.requires_grad = True
-
-
-    def forward(self, batched_inputs):
-
-        device = next(self.parameters()).device
-
-        images = torch.stack([xe['image'].to(device, non_blocking=True) for xe in batched_inputs])
-
-        if self.training:
-            # convert Detectron2 Instances -> YOLO labels
-            labels = []
-            for x in batched_inputs:
-                inst: Instances = x["instances"].to(device)
-                # xyxy boxes -> xywh normalized (YOLO format)
-                h, w = x["height"], x["width"]
-                b = inst.gt_boxes.tensor.clone()
-                b[:, 2:] = b[:, 2:] - b[:, :2]   # xyxy -> xywh
-                b[:, 0] = b[:, 0] + b[:, 2]/2.0
-                b[:, 1] = b[:, 1] + b[:, 3]/2.0
-                b[:, [0,2]] /= w
-                b[:, [1,3]] /= h
-                cls = inst.gt_classes[:, None].float()
-                yolo_targets = torch.cat([cls, b], dim=1)
-                labels.append(yolo_targets)
-
-            preds = self.backbone(images)
-            loss_items = self.criterion(preds, labels)
-
-            return {
-                "loss_box": loss_items[0],
-                "loss_obj": loss_items[1],
-                "loss_cls": loss_items[2],
-            }
-
-        else:
-            # Inference
-
-            results = self.backbone.predict(images, conf=self.score_thresh, verbose=False, device=self.device)
-
-            outputs = []
-            for inp, r in zip(batched_inputs, results):
-                inst = Instances((inp["height"], inp["width"]))
-                boxes   = torch.tensor(r.boxes.xyxy.cpu().numpy())
-                scores  = torch.tensor(r.boxes.conf.cpu().numpy())
-                classes = torch.tensor(r.boxes.cls.cpu().numpy(), dtype=torch.int64)
-
-                # top-K
-                if len(scores) > self.max_det:
-                    idx = torch.topk(scores, self.max_det).indices
-                    boxes, scores, classes = boxes[idx], scores[idx], classes[idx]
-
-                inst.pred_boxes   = Boxes(boxes)
-                inst.scores       = scores
-                inst.pred_classes = classes
-                outputs.append({"instances": inst})
-            return outputs
         
 class YOLOTrainer(DefaultTrainer):
     @classmethod
