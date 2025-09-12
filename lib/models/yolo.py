@@ -1,4 +1,5 @@
 import torch, torch.nn as nn
+
 from detectron2.modeling import META_ARCH_REGISTRY, build_model
 from detectron2.structures import Instances, Boxes
 from detectron2.engine import DefaultTrainer
@@ -12,6 +13,36 @@ from ultralytics.nn.modules.conv import Conv
 from ultralytics.nn.modules.head import Detect
 
 from ultralytics.utils.loss import v8DetectionLoss
+
+from functool import partial
+
+class Conv(nn.Module):
+def make_yolo_backbone():
+    m = nn.Sequential(
+        Conv(3, 16, k=3, s=2, p=1, act=True),
+        Conv(16, 32, k=3, s=2, p=1, act=True),
+        C3k2(32, 64, n=2, c3k=False, e=)
+
+    )
+
+def rebuild_yolo11n():
+    from ultralytics import YOLO
+
+    yolo = YOLO("yolo11n.pt")
+
+
+
+def reset_hp(model, eps=0.001, momentum=0.03, ):
+    for m in model.modules():
+        if isinstance(m, (nn.SiLU, nn.ReLU, nn.LeajyReLU)):
+            m.inplace = True
+        if isinstance(m, nn.BatchNorm2d):
+            m.eps = eps
+            m.momentum = momentum
+            m.affine = True
+            m.track_running_stats = True
+        
+
 
 class YOLO11n(nn.Module):
     super().__init__()
