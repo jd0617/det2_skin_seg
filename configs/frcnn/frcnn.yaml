@@ -6,8 +6,8 @@ CUDNN:
 GPUS: (0,)
 SEED: 24
 
-RECORD_BASE: './project/record/only_allergy_600x1200_obj_det' #'/home/jd0617/Saved/cls_by_patient/rgb' '/tmp/testestes' # 
-OUTPUT_DIR: 'result_single/frcnn'
+RECORD_BASE: '/workspace/project/testestes' # './project/record/only_allergy_600x1200_obj_det' #'/home/jd0617/Saved/cls_by_patient/rgb' 
+OUTPUT_DIR: 'result_bin_complete/frcnn'
 
 K_FOLD: 5
 VAL_K_FOLD: 3
@@ -19,9 +19,14 @@ DATALOADER:
 DATASETS:
   DATASET: CompletePatch # CellByPatient
   IMG_DIR: "/workspace/datasets/seg_by_patient/preprocessed/pre_cropped_patch_all_r1_r2"
-  ANNO_DIR: "/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/only_allergy/pre_allergy_merge.json"
-  TRAIN_ANNO_DIR: '/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/only_allergy/pre_allergy_train.json'
-  TEST_ANNO_DIR: '/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/only_allergy/pre_allergy_test.json'
+  # ALL COMPLETE
+  ANNO_DIR: "/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/all_complete/binary/pre_all_complete_merge.json"
+  TRAIN_ANNO_DIR: '/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/all_complete/binary/pre_all_complete_train.json'
+  TEST_ANNO_DIR: '/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/all_complete/binary/pre_all_complete_test.json'
+  # ONLY ALLERGY
+  # ANNO_DIR: "/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/only_allergy/multi_class/pre_allergy_merge.json"
+  # TRAIN_ANNO_DIR: '/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/only_allergy/multi_class/pre_allergy_train.json'
+  # TEST_ANNO_DIR: '/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/only_allergy/multi_class/pre_allergy_test.json'
   TRAIN: ('my_train', )
   TEST: ('my_test', )
   SHUFFLE: true
