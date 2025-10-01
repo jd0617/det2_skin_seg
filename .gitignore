@@ -1,5 +1,5 @@
 reference.py
 record/
-tools/gradcam_results/
+tools/cam_results/
 tools/yolov8n.pt
 testestes

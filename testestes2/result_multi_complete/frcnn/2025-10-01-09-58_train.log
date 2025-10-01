@@ -1,0 +1,24 @@
+2025-10-01 09:58:32,741 Registering my_train...
+2025-10-01 09:58:32,742 Registering my_test...
+2025-10-01 09:58:33,132 
+Category ids in annotations are not in [1, #categories]! We'll apply a mapping for you.
+
+2025-10-01 09:58:33,133 Loaded 183 images in COCO format from /workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/all_complete/multi_class/pre_all_complete_train.json
+2025-10-01 09:58:33,149 Removed 0 images with no usable annotations. 183 images left.
+2025-10-01 09:58:33,152 Distribution of instances among all 3 categories:
+[36m|  category  | #instances   |  category  | #instances   |  category  | #instances   |
+|:----------:|:-------------|:----------:|:-------------|:----------:|:-------------|
+|  level_0   | 2201         |  level_1   | 74           |  level_2   | 0            |
+|            |              |            |              |            |              |
+|   total    | 2275         |            |              |            |              |[0m
+2025-10-01 09:58:33,152 [DatasetMapper] Augmentations used in training: [ResizeShortestEdge(short_edge_length=(600,), max_size=1200, sample_style='choice')]
+2025-10-01 09:58:33,152 Using training sampler TrainingSampler
+2025-10-01 09:58:33,152 Serializing the dataset using: <class 'detectron2.data.common._TorchSerializedList'>
+2025-10-01 09:58:33,152 Serializing 183 elements to byte tensors and concatenating them all ...
+2025-10-01 09:58:33,153 Serialized dataset takes 0.29 MiB
+2025-10-01 09:58:33,153 Making batched data loader with batch_size=16
+2025-10-01 09:58:33,155 Starting training from iteration 0
+2025-10-01 09:58:43,068  eta: 0:10:40  iter: 19  total_loss: 203.5  loss_cls: 137.1  loss_box_reg: 21.93  loss_rpn_cls: 1.822  loss_rpn_loc: 9.713    time: 0.4714  last_time: 0.4846  data_time: 0.0281  last_data_time: 0.0195   lr: 0.0014701  max_mem: 10869M
+2025-10-01 09:58:45,009 Overall training speed: 21 iterations in 0:00:10 (0.4926 s / it)
+2025-10-01 09:58:45,010 Total training time: 0:00:10 (0:00:00 on hooks)
+2025-10-01 09:58:45,010  eta: 0:10:37  iter: 23  total_loss: 203.5  loss_cls: 137.1  loss_box_reg: 36.42  loss_rpn_cls: 1.822  loss_rpn_loc: 8.621    time: 0.4712  last_time: 0.4514  data_time: 0.0216  last_data_time: 0.0238   lr: 0.0017006  max_mem: 10869M

@@ -6,8 +6,8 @@ CUDNN:
 GPUS: (0,)
 SEED: 24
 
-RECORD_BASE: '/workspace/project/record/debug2' #'./project/record/only_complete_600x1200_obj_det/kfold_inner_random_oc' #'/home/jd0617/Saved/cls_by_patient/rgb' '/tmp/testestes' # 
-OUTPUT_DIR: 'result_single/frcnn_vis' #retinanet
+RECORD_BASE: '/workspace/project/record/debug22' #'./project/record/only_complete_600x1200_obj_det/kfold_inner_random_oc' #'/home/jd0617/Saved/cls_by_patient/rgb' '/tmp/testestes' # 
+OUTPUT_DIR: 'result_bin/frcnn_vis' #retinanet
 
 K_FOLD: 5
 VAL_K_FOLD: 3
@@ -19,9 +19,9 @@ DATALOADER:
 DATASETS:
   DATASET: CompletePatch # CellByPatient
   IMG_DIR: "/workspace/datasets/seg_by_patient/preprocessed/pos_cropped_patch_all_r1_r2"
-  ANNO_DIR: "/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/pre_all_complete_merge.json"
-  TRAIN_ANNO_DIR: '/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/pre_all_complete_train.json'
-  TEST_ANNO_DIR: '/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/pre_all_complete_test.json'
+  ANNO_DIR: "/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/all_complete/binary/pre_all_complete_merge.json"
+  TRAIN_ANNO_DIR: '/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/all_complete/binary/pre_all_complete_train.json'
+  TEST_ANNO_DIR: '/workspace/datasets/seg_by_patient/preprocessed/anno/coco_format/all_complete/binary/pre_all_complete_test.json'
   TRAIN: ('my_train', )
   TEST: ('my_test', )
   SHUFFLE: true
@@ -49,6 +49,7 @@ MODEL:
   NUM_MASKS: 15
   FROM_LOGITS: True
   ALIGN_CORNERS: True
+  NUM_CLASSES: 2
   ROI_HEADS:
     BATCH_SIZE_PER_IMAGE: 240 # 16*15
     NUM_CLASSES: 2
@@ -165,4 +166,4 @@ SOLVER:
     CLIP_VALUE : 1.0
     NORM_TYPE : 2.0
   AMP: 
-    ENABLED: True
+    ENABLED: False

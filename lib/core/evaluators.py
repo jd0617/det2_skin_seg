@@ -78,7 +78,7 @@ logger = logging.getLogger(__name__)
     
 
 class VisualizeEval(DatasetEvaluator):
-    def __init__(self, dataset_name, output_dir, max_images=50, score_thresh=None, topk=200):
+    def __init__(self, dataset_name, output_dir, max_images=50, score_thresh=None, topk=20):
         self.dataset_name = dataset_name
         self.output_dir   = os.path.join(output_dir, f"val_vis_{dataset_name}")
         os.makedirs(self.output_dir, exist_ok=True)

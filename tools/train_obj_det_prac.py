@@ -177,7 +177,7 @@ def main():
     evaluator = DatasetEvaluators([
                 COCOEvaluator(cfg.DATASETS.TEST[0], output_dir=final_output_dir),
                 VisualizeEval(cfg.DATASETS.TEST[0], output_dir=final_output_dir,
-                              max_images=100, score_thresh=0.05, topk=300)
+                              max_images=100, score_thresh=0.3, topk=20)
             ])
     test_loader = build_detection_test_loader(cfg, cfg.DATASETS.TEST[0], mapper=keep_gt_mapper)
     results = inference_on_dataset(trainer.model, test_loader, evaluator) 
@@ -196,5 +196,3 @@ def main():
     
 if __name__ == "__main__":
     main()
-
-
